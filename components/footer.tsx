@@ -21,7 +21,6 @@ export function Footer() {
           </div>
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
             <span className="mb-1 text-ivory/30">Compte</span>
-            <Link href="/login" className="hover:text-violet-electric">Connexion</Link>
             <Link href="/compte" className="hover:text-violet-electric">Mon Compte</Link>
           </div>
         </div>
