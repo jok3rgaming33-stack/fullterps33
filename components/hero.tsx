@@ -1,52 +1,67 @@
 import Link from "next/link"
+import Image from "next/image"
 
 export function Hero() {
   return (
-    <section className="grain relative overflow-hidden border-b border-white/10">
-      {/* Ambient violet storm glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(60% 50% at 20% 20%, rgba(179,85,255,0.22), transparent 60%), radial-gradient(50% 40% at 85% 70%, rgba(91,31,184,0.28), transparent 60%), #07060B",
-        }}
+    <section className="relative overflow-hidden border-b border-white/10">
+      {/* Storm alley background photo */}
+      <Image
+        src="/images/hero-bg.png"
+        alt=""
+        fill
+        priority
+        className="object-cover object-center"
+        aria-hidden="true"
       />
-      {/* Faint bolt silhouettes */}
-      <svg
-        className="pointer-events-none absolute -right-10 top-10 h-[420px] w-[420px] opacity-[0.07] md:h-[560px] md:w-[560px]"
-        viewBox="0 0 46 64"
-        fill="none"
-      >
-        <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#B355FF" />
-      </svg>
+      {/* Readability gradients over the photo */}
+      <div className="absolute inset-0 bg-gradient-to-t from-void via-void/40 to-void/70" />
+      <div className="absolute inset-0 bg-gradient-to-r from-void/60 via-transparent to-void/60" />
 
-      <div className="relative mx-auto flex max-w-[1200px] flex-col items-start px-4 py-20 md:py-28">
-        <span className="mb-4 font-mono text-xs uppercase tracking-[0.35em] text-violet-electric">
-          Édition Capsule — Automne
-        </span>
+      <div className="relative mx-auto flex max-w-[1200px] flex-col px-4 pt-10 md:pt-16">
+        {/* Masked figure + wordmark, composed like the reference render */}
+        <div className="relative flex items-center justify-center md:justify-start">
+          <div className="relative h-[280px] w-[280px] shrink-0 drop-shadow-[0_0_40px_rgba(179,85,255,0.25)] sm:h-[360px] sm:w-[360px] md:h-[440px] md:w-[440px]">
+            <Image
+              src="/images/hero-guy.png"
+              alt="Silhouette FULLTERPS33"
+              fill
+              className="object-contain object-bottom"
+              priority
+            />
+          </div>
+          <div className="relative -ml-6 hidden h-[160px] w-[420px] md:block lg:h-[190px] lg:w-[520px]">
+            <Image src="/images/hero-logo.png" alt="FULLTERPS33" fill className="object-contain" priority />
+          </div>
+        </div>
 
-        <h1 className="font-display text-[15vw] leading-[0.85] tracking-tight text-ivory text-glow md:text-[7.5rem]">
-          FULLTERPS<span className="text-violet-electric">33</span>
-        </h1>
+        {/* Mobile-only logo, stacked below since side-by-side is too tight */}
+        <div className="relative -mt-4 h-[90px] w-full md:hidden">
+          <Image src="/images/hero-logo.png" alt="FULLTERPS33" fill className="object-contain" priority />
+        </div>
 
-        <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ivory/70 md:text-lg">
-          Coupes larges, matières lourdes, silhouette orage. Le streetwear pensé pour la
-          rue, la nuit, et ce qui gronde au-dessus.
-        </p>
+        <div className="relative z-10 -mt-6 max-w-xl pb-20 md:-mt-4 md:pb-28">
+          <span className="mb-3 block font-mono text-xs uppercase tracking-[0.35em] text-violet-electric">
+            Édition Capsule — Automne
+          </span>
+          <p className="font-body text-base leading-relaxed text-ivory/70 md:text-lg">
+            Coupes larges, matières lourdes, silhouette orage. Le streetwear pensé pour la
+            rue, la nuit, et ce qui gronde au-dessus.
+          </p>
 
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Link
-            href="#capsule"
-            className="clip-tag bg-violet-electric px-8 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void shadow-glow transition hover:brightness-110"
-          >
-            Voir la collection
-          </Link>
-          <Link
-            href="#nouveautes"
-            className="border border-white/20 px-8 py-3 font-mono text-xs uppercase tracking-[0.2em] text-ivory/80 transition hover:border-violet-electric hover:text-violet-electric"
-          >
-            Nouveautés
-          </Link>
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              href="#capsule"
+              className="clip-tag bg-violet-electric px-8 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void shadow-glow transition hover:brightness-110"
+            >
+              Voir la collection
+            </Link>
+            <Link
+              href="#nouveautes"
+              className="border border-white/20 px-8 py-3 font-mono text-xs uppercase tracking-[0.2em] text-ivory/80 transition hover:border-violet-electric hover:text-violet-electric"
+            >
+              Nouveautés
+            </Link>
+          </div>
         </div>
       </div>
     </section>
