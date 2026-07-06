@@ -5,6 +5,8 @@ import { listProducts } from "@/app/actions/products"
 import { listPromoCodes } from "@/app/actions/promo"
 import { listAllOrders } from "@/app/actions/orders"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminPage() {
   if (!isAdmin()) {
     return <AdminLoginForm />
