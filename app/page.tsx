@@ -5,6 +5,8 @@ import { LightningDivider } from "@/components/lightning-divider"
 import { CartDrawer } from "@/components/cart-drawer"
 import { Footer } from "@/components/footer"
 
+export const dynamic = "force-dynamic"
+
 export default function HomePage() {
   return (
     <>
