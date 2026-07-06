@@ -8,7 +8,8 @@ import { listAllOrders } from "@/app/actions/orders"
 export const dynamic = "force-dynamic"
 
 export default async function AdminPage() {
-  if (!isAdmin()) {
+  const admin = await isAdmin()
+  if (!admin) {
     return <AdminLoginForm />
   }
 
