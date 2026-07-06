@@ -6,13 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-db": "node scripts/setup-db.mjs"
   },
   "dependencies": {
     "next": "14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "lucide-react": "^0.400.0"
+    "lucide-react": "^0.400.0",
+    "postgres": "^3.4.4"
   },
   "devDependencies": {
     "typescript": "^5.5.3",

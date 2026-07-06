@@ -1,13 +1,17 @@
 "use client"
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react"
-import type { Product } from "@/lib/products"
+import type { Product } from "@/lib/types"
+import { validatePromoCode } from "@/app/actions/promo"
+import { placeOrder } from "@/app/actions/orders"
 
 export type CartLine = {
   product: Product
   size: string
   quantity: number
 }
+
+type CheckoutState = "idle" | "loading" | "success" | "error"
 
 type CartContextValue = {
   lines: CartLine[]
@@ -18,7 +22,16 @@ type CartContextValue = {
   removeLine: (productId: string, size: string) => void
   updateQuantity: (productId: string, size: string, quantity: number) => void
   totalCount: number
+  subtotal: number
+  discount: number
   totalPrice: number
+  promoCode: string | null
+  promoMessage: string | null
+  applyPromoCode: (code: string) => Promise<void>
+  removePromoCode: () => void
+  checkout: () => Promise<void>
+  checkoutState: CheckoutState
+  checkoutMessage: string | null
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -26,6 +39,11 @@ const CartContext = createContext<CartContextValue | null>(null)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const [promoCode, setPromoCode] = useState<string | null>(null)
+  const [discount, setDiscount] = useState(0)
+  const [promoMessage, setPromoMessage] = useState<string | null>(null)
+  const [checkoutState, setCheckoutState] = useState<CheckoutState>("idle")
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
 
   function addToCart(product: Product, size: string) {
     setLines((prev) => {
@@ -55,10 +73,57 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const totalCount = useMemo(() => lines.reduce((sum, l) => sum + l.quantity, 0), [lines])
-  const totalPrice = useMemo(
-    () => lines.reduce((sum, l) => sum + l.quantity * l.product.price, 0),
-    [lines],
-  )
+  const subtotal = useMemo(() => lines.reduce((sum, l) => sum + l.quantity * l.product.price, 0), [lines])
+  const totalPrice = Math.max(0, subtotal - discount)
+
+  async function applyPromoCode(code: string) {
+    const result = await validatePromoCode(code, subtotal)
+    setPromoMessage(result.message)
+    if (result.ok) {
+      setPromoCode(result.code ?? code.toUpperCase())
+      setDiscount(result.discount ?? 0)
+    } else {
+      setPromoCode(null)
+      setDiscount(0)
+    }
+  }
+
+  function removePromoCode() {
+    setPromoCode(null)
+    setDiscount(0)
+    setPromoMessage(null)
+  }
+
+  async function checkout() {
+    setCheckoutState("loading")
+    setCheckoutMessage(null)
+    try {
+      const result = await placeOrder(
+        lines.map((l) => ({
+          productId: l.product.id,
+          name: l.product.name,
+          size: l.size,
+          price: l.product.price,
+          quantity: l.quantity,
+        })),
+        promoCode ?? undefined,
+      )
+      if (result.ok) {
+        setCheckoutState("success")
+        setCheckoutMessage("Commande passée avec succès !")
+        setLines([])
+        setPromoCode(null)
+        setDiscount(0)
+        setPromoMessage(null)
+      } else {
+        setCheckoutState("error")
+        setCheckoutMessage(result.message)
+      }
+    } catch {
+      setCheckoutState("error")
+      setCheckoutMessage("Une erreur est survenue, réessayez.")
+    }
+  }
 
   return (
     <CartContext.Provider
@@ -71,7 +136,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeLine,
         updateQuantity,
         totalCount,
+        subtotal,
+        discount,
         totalPrice,
+        promoCode,
+        promoMessage,
+        applyPromoCode,
+        removePromoCode,
+        checkout,
+        checkoutState,
+        checkoutMessage,
       }}
     >
       {children}

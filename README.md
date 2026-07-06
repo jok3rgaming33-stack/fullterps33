@@ -1,52 +1,71 @@
 # FULLTERPS33 — Streetwear
 
-Site e-commerce streetwear, Next.js 14 (App Router) + TypeScript + Tailwind CSS.
+Site e-commerce streetwear, Next.js 14 (App Router) + TypeScript + Tailwind CSS,
+avec base de données Postgres (produits, comptes clients, codes promo, commandes).
 
-## Démarrer en local
+## 1. Créer la base de données (Neon, gratuit)
+
+1. Sur [vercel.com](https://vercel.com), ouvrez votre projet → onglet **Storage** → **Create Database** → **Neon Postgres** (ou Postgres tout court selon l'offre affichée)
+2. Une fois créée, Vercel vous donne une variable `DATABASE_URL` (ou `POSTGRES_URL`) — copiez-la
+3. Toujours dans **Storage**, connectez cette base à votre projet si ce n'est pas automatique
+
+## 2. Configurer les variables d'environnement
+
+**En local**, copiez `.env.example` en `.env.local` et remplissez :
+```bash
+cp .env.example .env.local
+```
+- `DATABASE_URL` : collée depuis Neon/Vercel
+- `SESSION_SECRET` : une chaîne aléatoire longue (`openssl rand -hex 32`)
+- `ADMIN_PASSWORD` : le mot de passe que vous voulez pour accéder à `/admin`
+
+**Sur Vercel** : Project → **Settings** → **Environment Variables** → ajoutez les 3 mêmes variables (DATABASE_URL est probablement déjà ajoutée automatiquement par Neon).
+
+## 3. Installer et initialiser
 
 ```bash
 npm install
+npm run setup-db
+```
+
+`setup-db` crée les tables (produits, clients, codes promo, commandes) et insère 8 produits de démonstration si la table est vide.
+
+## 4. Lancer en local
+
+```bash
 npm run dev
 ```
+[http://localhost:3000](http://localhost:3000)
 
-Ouvre [http://localhost:3000](http://localhost:3000).
+## 5. Déployer sur Vercel
 
-## Déployer sur Vercel
-
-1. Pousse ce projet sur un repo GitHub (ou GitLab/Bitbucket) :
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin <ton-repo>
-   git push -u origin main
-   ```
-2. Va sur [vercel.com/new](https://vercel.com/new), importe le repo.
-3. Vercel détecte automatiquement Next.js — aucune configuration nécessaire.
-4. Clique sur **Deploy**.
-
-Ou en local avec la CLI :
 ```bash
-npm i -g vercel
-vercel
+git add -A
+git commit -m "Ajoute base de données, comptes, promos, admin"
+git push
 ```
+Vercel redéploie automatiquement. **Important** : après le tout premier déploiement avec la base de données connectée, lancez `npm run setup-db` (en local, avec le `DATABASE_URL` de production dans `.env.local`) pour créer les tables — Vercel ne le fait pas pour vous automatiquement.
 
-## Ce qui est inclus
+## Fonctionnalités
 
-- **Accueil** : navbar, hero, sections produits (Édition Capsule / Nouveautés), panier
-- **Panier** : géré en React Context (`components/cart-provider.tsx`), aucune persistance serveur
-- **/login** : formulaire connexion/inscription (démo front-end, pas d'auth réelle)
-- **/compte** : commandes fictives + programme de fidélité
+- **Accueil** (`/`) : hero, sections produits lues depuis la base de données
+- **Panier** : React Context, codes promo appliqués en temps réel, commande enregistrée en base
+- **Compte client** (`/login`, `/compte`) : vraie inscription/connexion (mot de passe hashé), historique de commandes, points de fidélité (1pt/€ dépensé)
+- **Panel admin** (`/admin`) : protégé par `ADMIN_PASSWORD`
+  - **Produits** : ajouter / modifier / supprimer
+  - **Codes promo** : créer des codes en % ou en €, montant minimum, activer/désactiver
+  - **Commandes** : voir toutes les commandes, changer leur statut (En préparation / Expédiée / Livrée / Annulée)
 
-## Ce qui n'est PAS inclus (à ajouter selon tes besoins)
+Le lien vers `/admin` n'est volontairement pas affiché dans la navbar — accédez-y directement via l'URL.
 
-- Authentification réelle (ex. NextAuth, Clerk)
-- Base de données produits/commandes (ex. Postgres + Prisma, Supabase)
-- Paiement (ex. Stripe Checkout)
-- Panel admin de gestion (produits, promos, commandes)
+## Ce qui n'est toujours PAS inclus
+
+- Paiement réel (ex. Stripe Checkout) — les commandes sont enregistrées mais aucun paiement n'est prélevé
+- Envoi d'emails (confirmation de commande, etc.)
+- Upload d'images produits (le champ `image` est juste une étiquette texte pour l'instant, pas un vrai fichier)
 
 ## Personnaliser
 
-- Produits mockés : `lib/products.ts`
-- Palette / typographies : `tailwind.config.ts` et `app/layout.tsx`
+- Palette / typographies : `tailwind.config.ts`, `app/layout.tsx`
 - Textes de marque : `components/hero.tsx`, `components/footer.tsx`
+- Schéma de base de données : `db/schema.sql`

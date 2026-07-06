@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { badgeStyles, type Product } from "@/lib/products"
+import { badgeStyles, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
 

@@ -1,11 +1,38 @@
 "use client"
 
-import { X, Minus, Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { X, Minus, Plus, Trash2, Tag } from "lucide-react"
 import { useCart } from "@/components/cart-provider"
 import { formatPrice } from "@/lib/utils"
 
 export function CartDrawer() {
-  const { isOpen, closeCart, lines, updateQuantity, removeLine, totalPrice } = useCart()
+  const {
+    isOpen,
+    closeCart,
+    lines,
+    updateQuantity,
+    removeLine,
+    subtotal,
+    discount,
+    totalPrice,
+    promoCode,
+    promoMessage,
+    applyPromoCode,
+    removePromoCode,
+    checkout,
+    checkoutState,
+    checkoutMessage,
+  } = useCart()
+
+  const [codeInput, setCodeInput] = useState("")
+  const [applying, setApplying] = useState(false)
+
+  async function handleApplyCode() {
+    if (!codeInput.trim()) return
+    setApplying(true)
+    await applyPromoCode(codeInput.trim())
+    setApplying(false)
+  }
 
   return (
     <>
@@ -30,7 +57,12 @@ export function CartDrawer() {
         </div>
 
         <div className="scroll-thin flex-1 overflow-y-auto p-4">
-          {lines.length === 0 ? (
+          {checkoutState === "success" ? (
+            <div className="mt-10 text-center">
+              <p className="font-display text-2xl text-violet-electric">Merci !</p>
+              <p className="mt-2 font-mono text-sm text-ivory/60">{checkoutMessage}</p>
+            </div>
+          ) : lines.length === 0 ? (
             <p className="mt-10 text-center font-mono text-sm text-ivory/40">
               Ton panier est vide pour l'instant.
             </p>
@@ -87,18 +119,70 @@ export function CartDrawer() {
           )}
         </div>
 
-        <div className="border-t border-white/10 p-4">
-          <div className="mb-4 flex items-center justify-between font-mono text-sm">
-            <span className="text-ivory/60">Total</span>
-            <span className="text-lg font-bold text-violet-electric">{formatPrice(totalPrice)}</span>
+        {lines.length > 0 && checkoutState !== "success" && (
+          <div className="border-t border-white/10 p-4">
+            {/* Promo code */}
+            <div className="mb-4">
+              {promoCode ? (
+                <div className="flex items-center justify-between border border-violet-electric/40 bg-violet-electric/10 px-3 py-2">
+                  <span className="flex items-center gap-2 font-mono text-xs text-violet-electric">
+                    <Tag className="h-3.5 w-3.5" />
+                    {promoCode}
+                  </span>
+                  <button onClick={removePromoCode} className="font-mono text-[10px] uppercase text-ivory/50 hover:text-signal">
+                    Retirer
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={codeInput}
+                    onChange={(e) => setCodeInput(e.target.value)}
+                    placeholder="Code promo"
+                    className="min-w-0 flex-1 border border-white/15 bg-void px-3 py-2 font-mono text-xs uppercase text-ivory outline-none focus:border-violet-electric"
+                  />
+                  <button
+                    onClick={handleApplyCode}
+                    disabled={applying}
+                    className="shrink-0 border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-ivory/80 hover:border-violet-electric hover:text-violet-electric disabled:opacity-50"
+                  >
+                    Appliquer
+                  </button>
+                </div>
+              )}
+              {promoMessage && !promoCode && (
+                <p className="mt-1.5 font-mono text-[11px] text-signal">{promoMessage}</p>
+              )}
+            </div>
+
+            <div className="mb-1 flex items-center justify-between font-mono text-xs text-ivory/50">
+              <span>Sous-total</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="mb-1 flex items-center justify-between font-mono text-xs text-violet-electric">
+                <span>Réduction</span>
+                <span>-{formatPrice(discount)}</span>
+              </div>
+            )}
+            <div className="mb-4 flex items-center justify-between font-mono text-sm">
+              <span className="text-ivory/60">Total</span>
+              <span className="text-lg font-bold text-violet-electric">{formatPrice(totalPrice)}</span>
+            </div>
+
+            {checkoutState === "error" && checkoutMessage && (
+              <p className="mb-3 font-mono text-[11px] text-signal">{checkoutMessage}</p>
+            )}
+
+            <button
+              onClick={checkout}
+              disabled={checkoutState === "loading"}
+              className="clip-tag w-full bg-violet-electric py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {checkoutState === "loading" ? "Envoi…" : "Passer commande"}
+            </button>
           </div>
-          <button
-            disabled={lines.length === 0}
-            className="clip-tag w-full bg-violet-electric py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-ivory/30"
-          >
-            Passer commande
-          </button>
-        </div>
+        )}
       </aside>
     </>
   )
