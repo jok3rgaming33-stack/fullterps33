@@ -1,0 +1,86 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  :root {
+    --void: #07060B;
+    --surface: #1A1821;
+    --ivory: #F5F5DC;
+    --ivory-40: rgba(245, 245, 220, 0.4);
+    --ivory-50: rgba(245, 245, 220, 0.5);
+    --violet-electric: #B355FF;
+    --signal: #FF1744;
+    --success: #4CAF50;
+  }
+
+  * {
+    @apply border-slate-900;
+  }
+
+  body {
+    @apply bg-void text-ivory;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply outline-none ring-2 ring-violet-electric ring-offset-2 ring-offset-void;
+  }
+
+  /* Grain effect */
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' result='noise'/%3E%3CfeColorMatrix in='noise' type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' fill='%23000' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* Clip paths */
+  .clip-card {
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  }
+
+  .clip-tag {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  }
+
+  /* Typography */
+  .font-display {
+    font-family: var(--font-anton);
+    font-weight: 400;
+  }
+
+  .font-body {
+    font-family: var(--font-inter);
+  }
+
+  .font-mono {
+    font-family: var(--font-jbmono);
+  }
+
+  /* Smooth transitions */
+  * {
+    @apply transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply clip-tag bg-violet-electric px-6 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void transition hover:brightness-110 disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply border border-white/15 px-6 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-ivory transition hover:bg-white/5 disabled:opacity-60;
+  }
+
+  .input-field {
+    @apply border border-white/15 bg-void px-3 py-2.5 text-sm text-ivory outline-none focus:border-violet-electric;
+  }
+
+  .label-text {
+    @apply font-mono text-[10px] uppercase tracking-widest text-ivory/50;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-violet-electric to-violet-electric bg-clip-text text-transparent;
+  }
+}
