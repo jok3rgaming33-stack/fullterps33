@@ -14,10 +14,10 @@ export async function adminLogin(password: string): Promise<AdminAuthResult> {
   const b = Buffer.from(expected)
   const valid = a.length === b.length && crypto.timingSafeEqual(a, b)
   if (!valid) return { ok: false, message: "Mot de passe incorrect" }
-  setAdminSession()
+  await setAdminSession()
   return { ok: true, message: "Connecté" }
 }
 
 export async function adminLogout() {
-  clearAdminSession()
+  await clearAdminSession()
 }

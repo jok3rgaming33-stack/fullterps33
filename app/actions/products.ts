@@ -27,7 +27,7 @@ export async function listProducts(category?: Product["category"]): Promise<Prod
 }
 
 export async function createProduct(input: Omit<Product, "id"> & { id?: string }) {
-  if (!isAdmin()) throw new Error("Non autorisé")
+  if (!await isAdmin()) throw new Error("Non autorisé")
   const id = input.id || input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
   await sql`
     insert into products (id, name, price, category, status, badge, sizes, sku, image)
@@ -42,7 +42,7 @@ export async function createProduct(input: Omit<Product, "id"> & { id?: string }
 }
 
 export async function deleteProduct(id: string) {
-  if (!isAdmin()) throw new Error("Non autorisé")
+  if (!await isAdmin()) throw new Error("Non autorisé")
   await sql`delete from products where id = ${id}`
   revalidatePath("/")
   revalidatePath("/admin")

@@ -24,8 +24,9 @@ function unsign(signed: string): string | null {
 
 // ---- Session client ----
 
-export function setCustomerSession(customerId: number) {
-  cookies().set(CUSTOMER_COOKIE, sign(String(customerId)), {
+export async function setCustomerSession(customerId: number) {
+  const cookieStore = await cookies()
+  cookieStore.set(CUSTOMER_COOKIE, sign(String(customerId)), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -34,8 +35,9 @@ export function setCustomerSession(customerId: number) {
   })
 }
 
-export function getCustomerId(): number | null {
-  const raw = cookies().get(CUSTOMER_COOKIE)?.value
+export async function getCustomerId(): Promise<number | null> {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get(CUSTOMER_COOKIE)?.value
   if (!raw) return null
   const value = unsign(raw)
   if (!value) return null
@@ -43,14 +45,16 @@ export function getCustomerId(): number | null {
   return Number.isNaN(id) ? null : id
 }
 
-export function clearCustomerSession() {
-  cookies().delete(CUSTOMER_COOKIE)
+export async function clearCustomerSession() {
+  const cookieStore = await cookies()
+  cookieStore.delete(CUSTOMER_COOKIE)
 }
 
 // ---- Session admin ----
 
-export function setAdminSession() {
-  cookies().set(ADMIN_COOKIE, sign("admin"), {
+export async function setAdminSession() {
+  const cookieStore = await cookies()
+  cookieStore.set(ADMIN_COOKIE, sign("admin"), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -59,12 +63,14 @@ export function setAdminSession() {
   })
 }
 
-export function isAdmin(): boolean {
-  const raw = cookies().get(ADMIN_COOKIE)?.value
+export async function isAdmin(): Promise<boolean> {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get(ADMIN_COOKIE)?.value
   if (!raw) return false
   return unsign(raw) === "admin"
 }
 
-export function clearAdminSession() {
-  cookies().delete(ADMIN_COOKIE)
+export async function clearAdminSession() {
+  const cookieStore = await cookies()
+  cookieStore.delete(ADMIN_COOKIE)
 }

@@ -35,7 +35,7 @@ export async function validatePromoCode(code: string, subtotal: number): Promise
 }
 
 export async function listPromoCodes(): Promise<PromoCode[]> {
-  if (!isAdmin()) throw new Error("Non autorisé")
+  if (!await isAdmin()) throw new Error("Non autorisé")
   const rows = await sql`select * from promo_codes order by created_at desc`
   return rows.map((r: any) => ({
     code: r.code,
@@ -47,7 +47,7 @@ export async function listPromoCodes(): Promise<PromoCode[]> {
 }
 
 export async function createPromoCode(input: PromoCode) {
-  if (!isAdmin()) throw new Error("Non autorisé")
+  if (!await isAdmin()) throw new Error("Non autorisé")
   const code = input.code.trim().toUpperCase()
   await sql`
     insert into promo_codes (code, type, value, min_amount, active)
@@ -59,7 +59,7 @@ export async function createPromoCode(input: PromoCode) {
 }
 
 export async function deletePromoCode(code: string) {
-  if (!isAdmin()) throw new Error("Non autorisé")
+  if (!await isAdmin()) throw new Error("Non autorisé")
   await sql`delete from promo_codes where code = ${code}`
   revalidatePath("/admin")
 }
