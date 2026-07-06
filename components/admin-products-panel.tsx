@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2, Pencil } from "lucide-react"
+import { Trash2, Pencil, Search } from "lucide-react"
 import type { Product, StockStatus } from "@/lib/types"
 import { createProduct, deleteProduct } from "@/app/actions/products"
 import { formatPrice } from "@/lib/utils"
@@ -33,6 +33,8 @@ export function AdminProductsPanel({ products }: { products: Product[] }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState<Product["category"] | "all">("all")
   const router = useRouter()
 
   function startEdit(p: Product) {
@@ -85,6 +87,20 @@ export function AdminProductsPanel({ products }: { products: Product[] }) {
       await deleteProduct(id)
       router.refresh()
     })
+  }
+
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
+                         p.sku.toLowerCase().includes(search.toLowerCase())
+    const matchesCategory = categoryFilter === "all" || p.category === categoryFilter
+    return matchesSearch && matchesCategory
+  })
+
+  const stats = {
+    total: products.length,
+    capsule: products.filter((p) => p.category === "capsule").length,
+    nouveautes: products.filter((p) => p.category === "nouveautes").length,
+    available: products.filter((p) => p.status === "disponible").length,
   }
 
   return (
@@ -200,11 +216,58 @@ export function AdminProductsPanel({ products }: { products: Product[] }) {
         </div>
       </form>
 
-      <div className="flex flex-col gap-2">
-        {products.length === 0 && (
-          <p className="font-mono text-sm text-ivory/40">Aucun produit. Ajoutez-en un.</p>
-        )}
-        {products.map((p) => (
+      <div className="flex flex-col gap-4">
+        {/* Statistics */}
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <div className="border border-white/10 bg-surface/50 p-3 rounded">
+            <p className="font-mono text-[10px] uppercase text-ivory/50">Total</p>
+            <p className="font-display text-lg tracking-wide">{stats.total}</p>
+          </div>
+          <div className="border border-white/10 bg-surface/50 p-3 rounded">
+            <p className="font-mono text-[10px] uppercase text-ivory/50">Capsule</p>
+            <p className="font-display text-lg tracking-wide">{stats.capsule}</p>
+          </div>
+          <div className="border border-white/10 bg-surface/50 p-3 rounded">
+            <p className="font-mono text-[10px] uppercase text-ivory/50">Nouveautés</p>
+            <p className="font-display text-lg tracking-wide">{stats.nouveautes}</p>
+          </div>
+          <div className="border border-white/10 bg-surface/50 p-3 rounded">
+            <p className="font-mono text-[10px] uppercase text-ivory/50">Disponibles</p>
+            <p className="font-display text-lg tracking-wide">{stats.available}</p>
+          </div>
+        </div>
+
+        {/* Search and Filter */}
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-ivory/40" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom ou SKU..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full border border-white/15 bg-void pl-10 pr-3 py-2 text-sm outline-none focus:border-violet-electric"
+            />
+          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as any)}
+            className="border border-white/15 bg-void px-3 py-2 text-sm outline-none focus:border-violet-electric"
+          >
+            <option value="all">Toutes catégories</option>
+            <option value="capsule">Édition Capsule</option>
+            <option value="nouveautes">Nouveautés</option>
+          </select>
+        </div>
+
+        {/* Products List */}
+        <div className="flex flex-col gap-2">
+          {filteredProducts.length === 0 && (
+            <p className="font-mono text-sm text-ivory/40">
+              {products.length === 0 ? "Aucun produit. Ajoutez-en un." : "Aucun produit trouvé."}
+            </p>
+          )}
+          {filteredProducts.map((p) => (
           <div
             key={p.id}
             className="flex items-center justify-between border border-white/10 bg-surface px-4 py-3"
@@ -224,8 +287,9 @@ export function AdminProductsPanel({ products }: { products: Product[] }) {
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

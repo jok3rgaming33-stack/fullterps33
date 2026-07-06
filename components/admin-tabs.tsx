@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { Product } from "@/lib/types"
 import type { PromoCode } from "@/app/actions/promo"
 import { AdminProductsPanel } from "@/components/admin-products-panel"
+import { AdminCategoriesPanel } from "@/components/admin-categories-panel"
 import { AdminPromosPanel } from "@/components/admin-promos-panel"
 import { AdminOrdersPanel } from "@/components/admin-orders-panel"
 import { adminLogout } from "@/app/actions/admin-auth"
@@ -11,7 +12,7 @@ import { useRouter } from "next/navigation"
 
 type Order = Parameters<typeof AdminOrdersPanel>[0]["orders"]
 
-const TABS = ["Produits", "Codes promo", "Commandes"] as const
+const TABS = ["Catégories", "Produits", "Codes promo", "Commandes"] as const
 
 export function AdminTabs({
   products,
@@ -58,6 +59,7 @@ export function AdminTabs({
         ))}
       </div>
 
+      {tab === "Catégories" && <AdminCategoriesPanel products={products} />}
       {tab === "Produits" && <AdminProductsPanel products={products} />}
       {tab === "Codes promo" && <AdminPromosPanel promos={promos} />}
       {tab === "Commandes" && <AdminOrdersPanel orders={orders} />}
