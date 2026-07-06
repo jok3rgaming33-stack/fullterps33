@@ -31,7 +31,7 @@ export async function placeOrder(items: OrderItemInput[], promoCode?: string): P
   }
 
   const total = Math.max(0, subtotal - discount)
-  const customerId = getCustomerId()
+  const customerId = await getCustomerId()
 
   let customerEmail: string | null = null
   if (customerId) {
@@ -56,7 +56,7 @@ export async function placeOrder(items: OrderItemInput[], promoCode?: string): P
 }
 
 export async function listMyOrders() {
-  const customerId = getCustomerId()
+  const customerId = await getCustomerId()
   if (!customerId) return []
   const rows = await sql`
     select id, items, total, status, created_at from orders
@@ -73,7 +73,7 @@ export async function listMyOrders() {
 }
 
 export async function listAllOrders() {
-  if (!isAdmin()) throw new Error("Non autorisé")
+  if (!await isAdmin()) throw new Error("Non autorisé")
   const rows = await sql`select * from orders order by created_at desc limit 200`
   return rows.map((r: any) => ({
     id: r.id,
@@ -91,7 +91,7 @@ export async function listAllOrders() {
 const STATUSES = ["En préparation", "Expédiée", "Livrée", "Annulée"] as const
 
 export async function updateOrderStatus(orderId: number, status: string) {
-  if (!isAdmin()) throw new Error("Non autorisé")
+  if (!await isAdmin()) throw new Error("Non autorisé")
   if (!STATUSES.includes(status as (typeof STATUSES)[number])) {
     throw new Error("Statut invalide")
   }

@@ -28,7 +28,7 @@ export async function signup(name: string, email: string, password: string): Pro
     values (${cleanEmail}, ${passwordHash}, ${name.trim() || cleanEmail})
     returning id
   `
-  setCustomerSession(rows[0].id)
+  await setCustomerSession(rows[0].id)
   return { ok: true, message: "Compte créé" }
 }
 
@@ -39,16 +39,16 @@ export async function login(email: string, password: string): Promise<AuthResult
   if (!customer || !verifyPassword(password, customer.password_hash)) {
     return { ok: false, message: "Email ou mot de passe incorrect" }
   }
-  setCustomerSession(customer.id)
+  await setCustomerSession(customer.id)
   return { ok: true, message: "Connecté" }
 }
 
 export async function logout() {
-  clearCustomerSession()
+  await clearCustomerSession()
 }
 
 export async function getCurrentCustomer(): Promise<Customer | null> {
-  const id = getCustomerId()
+  const id = await getCustomerId()
   if (!id) return null
   const rows = await sql`select id, email, name, loyalty_points from customers where id = ${id}`
   const row = rows[0]
