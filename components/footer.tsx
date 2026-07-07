@@ -9,14 +9,14 @@ export function Footer() {
             FULLTERPS<span className="text-violet-electric">33</span>
           </span>
           <p className="mt-2 max-w-xs font-mono text-xs text-ivory/40">
-            Streetwear né dans l'orage. Édition capsule renouvelée chaque saison.
+            Que de la foudre la famille.
           </p>
         </div>
 
         <div className="flex gap-12">
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
             <span className="mb-1 text-ivory/30">Boutique</span>
-            <Link href="/#capsule" className="hover:text-violet-electric">Édition Capsule</Link>
+            <Link href="/#capsule" className="hover:text-violet-electric">Nos produits</Link>
             <Link href="/#nouveautes" className="hover:text-violet-electric">Nouveautés</Link>
           </div>
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
@@ -26,7 +26,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/5 px-4 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-ivory/30">
-        © {new Date().getFullYear()} FULLTERPS33 — Tous droits réservés
+        © {new Date().getFullYear()} HEISENWEB — Tous droits réservés
       </div>
     </footer>
   )
