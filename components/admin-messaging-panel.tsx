@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useRef, useTransition } from "react"
-import { Send, MessageSquare, Loader2, ChevronLeft } from "lucide-react"
+import { Send, MessageSquare, Loader2, ChevronLeft, Trash2 } from "lucide-react"
 import {
   listAllThreads,
   getThreadById,
   addMessage,
   updateThreadStatus,
+  deleteThread,
   type OrderThread,
   type ThreadMessage,
 } from "@/app/actions/messaging"
@@ -27,7 +28,8 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
   const [threads, setThreads] = useState<OrderThread[]>(initial)
   const [active, setActive]   = useState<OrderThread | null>(null)
   const [messages, setMessages] = useState<ThreadMessage[]>([])
-  const [input, setInput]     = useState("")
+  const [input, setInput]       = useState("")
+  const [confirmId, setConfirmId] = useState<number | null>(null)
   const [pending, startTransition] = useTransition()
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -66,6 +68,17 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
     }
   }
 
+  function handleDelete(id: number) {
+    startTransition(async () => {
+      const r = await deleteThread(id)
+      if (r.ok) {
+        setThreads((prev) => prev.filter((t) => t.id !== id))
+        if (active?.id === id) { setActive(null); setMessages([]) }
+      }
+      setConfirmId(null)
+    })
+  }
+
   async function handleStatusChange(id: number, status: string) {
     await updateThreadStatus(id, status)
     const data = await getThreadById(id)
@@ -95,28 +108,59 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
           {threads.length === 0 ? (
             <p className="p-6 text-center font-mono text-xs text-ivory/30">Aucun fil de discussion.</p>
           ) : (
-            threads.map((t) => {
+              threads.map((t) => {
               const meta = statusMeta(t.status)
               const label = t.customerName ?? t.pseudo ?? (t.userToken ? t.userToken.slice(0, 8) : "—")
               return (
-                <button
+                <div
                   key={t.id}
-                  onClick={() => openThread(t.id)}
-                  className={`w-full border-b border-white/5 px-4 py-3 text-left transition hover:bg-white/5 ${active?.id === t.id ? "border-l-2 border-l-violet-electric bg-violet-electric/10" : ""}`}
+                  className={`group relative border-b border-white/5 transition hover:bg-white/5 ${active?.id === t.id ? "border-l-2 border-l-violet-electric bg-violet-electric/10" : ""}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-sm tracking-wide text-ivory">{label}</span>
-                    {t.unreadAdmin > 0 && (
-                      <span className="flex h-4 w-4 items-center justify-center bg-violet-electric font-mono text-[8px] text-void">
-                        {t.unreadAdmin}
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-mono text-[10px] text-ivory/40">
-                    #{t.id} {t.summary ? `· ${t.summary.slice(0, 30)}` : ""}
-                  </p>
-                  <span className={`font-mono text-[9px] uppercase tracking-widest ${meta.color}`}>{meta.label}</span>
-                </button>
+                  <button
+                    onClick={() => openThread(t.id)}
+                    className="w-full px-4 py-3 text-left"
+                  >
+                    <div className="flex items-center justify-between pr-6">
+                      <span className="font-display text-sm tracking-wide text-ivory">{label}</span>
+                      {t.unreadAdmin > 0 && (
+                        <span className="flex h-4 w-4 items-center justify-center bg-violet-electric font-mono text-[8px] text-void">
+                          {t.unreadAdmin}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-mono text-[10px] text-ivory/40">
+                      #{t.id} {t.summary ? `· ${t.summary.slice(0, 30)}` : ""}
+                    </p>
+                    <span className={`font-mono text-[9px] uppercase tracking-widest ${meta.color}`}>{meta.label}</span>
+                  </button>
+
+                  {/* Bouton supprimer */}
+                  {confirmId === t.id ? (
+                    <div className="flex items-center gap-1 border-t border-white/5 px-4 py-2">
+                      <button
+                        disabled={pending}
+                        onClick={() => handleDelete(t.id)}
+                        className="flex-1 border border-signal/30 bg-signal/10 py-1 font-mono text-[9px] uppercase tracking-widest text-signal transition hover:bg-signal/20 disabled:opacity-40"
+                      >
+                        Confirmer
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(null)}
+                        className="flex-1 border border-white/10 py-1 font-mono text-[9px] text-ivory/40 transition hover:text-ivory"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmId(t.id) }}
+                      className="absolute right-2 top-3 hidden p-1.5 text-ivory/20 transition hover:text-signal group-hover:block"
+                      aria-label="Supprimer la conversation"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               )
             })
           )}

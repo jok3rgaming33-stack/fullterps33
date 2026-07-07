@@ -26,6 +26,11 @@ export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
   title: "FULLTERPS33 — Streetwear",
   description: "Édition capsule streetwear FULLTERPS33. Orage urbain, coupes larges, éclairs violets.",
+  icons: {
+    icon: "/images/logomini.png",
+    apple: "/images/logomini.png",
+    shortcut: "/images/logomini.png",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -103,8 +103,26 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
         </div>
       </header>
 
+      {/* ── Mobile tab bar — full width, sticky below header ── */}
+      <div className="sticky top-[57px] z-40 flex w-full overflow-x-auto border-b border-white/10 bg-void/95 backdrop-blur-md md:hidden">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActive(id)}
+            className={`flex shrink-0 flex-col items-center gap-1 px-4 py-3 font-mono text-[9px] uppercase tracking-widest transition ${
+              active === id
+                ? "border-b-2 border-violet-electric text-violet-electric"
+                : "text-ivory/40 hover:text-ivory/70"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="mx-auto flex w-full max-w-screen-xl flex-1 px-0">
-        {/* ── Sidebar ── */}
+        {/* ── Sidebar desktop only ── */}
         <aside className="hidden w-52 shrink-0 border-r border-white/10 bg-surface/20 md:block">
           <nav className="flex flex-col gap-1 p-4 pt-6">
             {TABS.map(({ id, label, icon: Icon }) => {
@@ -127,26 +145,8 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
           </nav>
         </aside>
 
-        {/* ── Mobile tab bar ── */}
-        <div className="flex w-full overflow-x-auto border-b border-white/10 bg-surface/20 md:hidden">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActive(id)}
-              className={`flex shrink-0 flex-col items-center gap-1 px-4 py-3 font-mono text-[9px] uppercase tracking-widest transition ${
-                active === id
-                  ? "border-b-2 border-violet-electric text-violet-electric"
-                  : "text-ivory/40"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
-
         {/* ── Content ── */}
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 p-4 md:p-8">
 
           {/* OVERVIEW */}
           {active === "overview" && (

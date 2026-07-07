@@ -289,6 +289,15 @@ export async function updateThreadStatus(id: number, status: string) {
   return { ok: true }
 }
 
+// ── Supprimer un fil (admin) ───────────────────────────────────────────────
+export async function deleteThread(id: number): Promise<{ ok: boolean }> {
+  if (!(await isAdmin())) return { ok: false }
+  await sql`delete from order_thread_messages where thread_id = ${id}`
+  await sql`delete from order_threads where id = ${id}`
+  revalidatePath("/admin")
+  return { ok: true }
+}
+
 // ── Marquer lu (admin) ─────────────────────────────────────────────────────
 export async function markThreadRead(id: number) {
   if (!(await isAdmin())) return
