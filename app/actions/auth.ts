@@ -16,23 +16,27 @@ export interface AuthResult {
  * Check if IP has already registered an account this month
  */
 export async function checkIPLimit(ip: string): Promise<{ canRegister: boolean; message: string }> {
-  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-  
-  const rows = await sql`
-    select count(*) as count from user_registrations_ip
-    where ip = ${ip} and last_registration > ${oneMonthAgo}
-  `
-  
-  const count = rows[0]?.count || 0
-  
-  if (count > 0) {
-    return {
-      canRegister: false,
-      message: 'Une tentative d\'inscription a déjà été faite depuis cette IP ce mois-ci. Reviens dans 30 jours.'
+  try {
+    const rows = await sql`
+      select count(*) as count from user_registrations_ip
+      where ip = ${ip} and last_registration > now() - interval '30 days'
+    `
+    
+    const count = parseInt(rows[0]?.count || '0', 10)
+    
+    if (count > 0) {
+      return {
+        canRegister: false,
+        message: 'Une tentative d\'inscription a déjà été faite depuis cette IP ce mois-ci. Reviens dans 30 jours.'
+      }
     }
+    
+    return { canRegister: true, message: 'OK' }
+  } catch (error) {
+    console.error('[AUTH] IP limit check error:', error)
+    // Allow registration if check fails
+    return { canRegister: true, message: 'OK' }
   }
-  
-  return { canRegister: true, message: 'OK' }
 }
 
 /**
@@ -99,9 +103,18 @@ export async function registerUser(): Promise<AuthResult> {
       pseudo
     }
   } catch (error) {
-    console.error('[AUTH] Registration error:', error instanceof Error ? error.message : String(error))
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[AUTH] Registration error:', errorMsg)
     console.error('[AUTH] Full error:', error)
-    return { ok: false, message: 'Erreur lors de l\'enregistrement' }
+    
+    // Return more specific error messages
+    if (errorMsg.includes('duplicate key')) {
+      return { ok: false, message: 'Ce pseudo existe déjà' }
+    } else if (errorMsg.includes('UNIQUE constraint')) {
+      return { ok: false, message: 'Erreur: données en conflit' }
+    }
+    
+    return { ok: false, message: `Erreur: ${errorMsg.substring(0, 50)}` }
   }
 }
 
