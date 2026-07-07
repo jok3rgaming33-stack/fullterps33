@@ -1,6 +1,6 @@
 'use server'
 
-import { sql } from '@vercel/postgres'
+import { sql } from '@/lib/db'
 import { del } from '@vercel/blob'
 import { nanoid } from 'nanoid'
 import { getCustomerToken } from '@/lib/auth'
