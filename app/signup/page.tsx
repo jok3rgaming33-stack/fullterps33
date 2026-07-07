@@ -1,121 +1,130 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { registerUser } from '@/app/actions/auth'
 
 export default function SignupPage() {
-  const [step, setStep] = useState<'initial' | 'loading' | 'success'>('initial')
-  const [userToken, setUserToken] = useState<{ pseudo: string; token: string } | null>(null)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [pending] = useTransition()
+  const [result, setResult] = useState<{ pseudo: string; token: string } | null>(null)
 
   const handleRegister = async () => {
+    setLoading(true)
     setError(null)
-    setStep('loading')
+    console.log('[v0] Starting registration...')
+    
     try {
-      const result = await registerUser()
-      if (result.ok && result.token && result.pseudo) {
-        setUserToken({ pseudo: result.pseudo, token: result.token })
-        setStep('success')
+      console.log('[v0] Calling registerUser()')
+      const res = await registerUser()
+      console.log('[v0] Response:', res)
+      
+      if (res.ok && res.token && res.pseudo) {
+        console.log('[v0] Success! Setting result')
+        setResult({ pseudo: res.pseudo, token: res.token })
       } else {
-        setError(result.message)
-        setStep('initial')
+        console.log('[v0] Error response:', res.message)
+        setError(res.message)
       }
     } catch (err) {
-      setError('Erreur lors de l\'enregistrement')
-      setStep('initial')
-      console.error('[v0] Registration error:', err)
+      console.error('[v0] Catch error:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <>
       <Navbar />
-      <main className="grain relative flex min-h-[85vh] items-center justify-center overflow-hidden px-4 py-16">
-        {/* Background effects */}
-        <svg className="absolute inset-0 w-full h-full opacity-5 pointer-events-none" viewBox="0 0 1200 800" preserveAspectRatio="none">
-          <path d="M 0 0 Q 300 200 600 400 T 1200 800" stroke="url(#lightning)" strokeWidth="2" fill="none" />
-          <defs>
-            <linearGradient id="lightning" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#8B5CF6" />
-              <stop offset="100%" stopColor="#A78BFA" />
-            </linearGradient>
-          </defs>
-        </svg>
-
+      <main className="grain relative min-h-[85vh] flex items-center justify-center px-4 py-16">
         <div className="relative z-10 w-full max-w-md">
-          {/* Header */}
           <div className="mb-10 text-center">
             <h1 className="font-display text-4xl tracking-wider mb-2">FULLTERPS33</h1>
             <div className="h-0.5 w-20 bg-gradient-to-r from-violet-electric to-violet-soft mx-auto mb-3" />
             <p className="font-mono text-sm text-ivory/50 uppercase tracking-widest">
-              {step === 'success' ? 'Bienvenue!' : 'Rejoins la communauté'}
+              {result ? 'Bienvenue!' : 'Rejoins la communauté'}
             </p>
           </div>
 
-          {/* Content */}
-          {step === 'initial' && (
-            <div className="clip-card relative border border-white/10 bg-surface/40 backdrop-blur-sm p-8">
-              <div className="mb-6">
-                <h2 className="font-display text-2xl mb-4">Un clic pour commencer</h2>
-                <ul className="space-y-3 font-mono text-sm text-ivory/70 mb-6">
-                  <li className="flex gap-2"><span className="text-violet-electric">✓</span> Pseudo généré automatiquement</li>
-                  <li className="flex gap-2"><span className="text-violet-electric">✓</span> TOKEN unique et sécurisé</li>
-                  <li className="flex gap-2"><span className="text-violet-electric">✓</span> 1 compte par IP par mois</li>
-                  <li className="flex gap-2"><span className="text-violet-electric">✓</span> Points de loyauté offerts</li>
-                </ul>
-              </div>
-
-              {error && (
-                <div className="border border-signal/30 bg-signal/10 rounded px-3 py-2 mb-4">
-                  <p className="font-mono text-sm text-signal">{error}</p>
+          <div className="clip-card relative border border-white/10 bg-surface/40 backdrop-blur-sm p-8">
+            {!result ? (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-display text-2xl mb-4">Un clic pour commencer</h2>
+                  <ul className="space-y-3 font-mono text-sm text-ivory/70">
+                    <li className="flex gap-2">
+                      <span className="text-violet-electric">✓</span>
+                      <span>Pseudo généré automatiquement</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-violet-electric">✓</span>
+                      <span>TOKEN unique et sécurisé</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-violet-electric">✓</span>
+                      <span>1 compte par IP par mois</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-violet-electric">✓</span>
+                      <span>Points de loyauté offerts</span>
+                    </li>
+                  </ul>
                 </div>
-              )}
 
-              <button
-                onClick={handleRegister}
-                disabled={pending}
-                className="clip-tag w-full bg-gradient-to-r from-violet-electric to-violet-soft py-3 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-60"
-              >
-                {pending ? 'Création...' : 'Créer mon compte'}
-              </button>
-            </div>
-          )}
+                {error && (
+                  <div className="border border-signal/30 bg-signal/10 rounded px-3 py-2">
+                    <p className="font-mono text-xs text-signal">{error}</p>
+                  </div>
+                )}
 
-          {step === 'loading' && (
-            <div className="clip-card relative border border-white/10 bg-surface/40 backdrop-blur-sm p-8 text-center">
-              <div className="animate-pulse">
-                <p className="font-mono text-sm text-ivory/60 mb-4">Génération de votre compte...</p>
-                <div className="h-8 w-32 bg-violet-electric/20 rounded mx-auto" />
-              </div>
-            </div>
-          )}
-
-          {step === 'success' && userToken && (
-            <div className="clip-card relative border border-white/10 bg-surface/40 backdrop-blur-sm p-8">
-              <div className="mb-6">
-                <p className="font-mono text-xs text-ivory/50 uppercase tracking-widest mb-2">Ton pseudo</p>
-                <p className="font-display text-3xl tracking-wider text-violet-electric mb-6">{userToken.pseudo}</p>
-
-                <p className="font-mono text-xs text-ivory/50 uppercase tracking-widest mb-2">Ton TOKEN</p>
-                <div className="bg-void border border-white/15 rounded p-3 mb-4 break-all">
-                  <p className="font-mono text-xs text-ivory/60">{userToken.token.substring(0, 50)}...</p>
-                </div>
                 <button
-                  onClick={() => navigator.clipboard.writeText(userToken.token)}
-                  className="w-full bg-violet-soft/20 hover:bg-violet-soft/30 border border-violet-electric/30 px-4 py-2 font-mono text-xs uppercase tracking-wider text-violet-electric transition"
+                  onClick={handleRegister}
+                  disabled={loading}
+                  className="clip-tag w-full bg-gradient-to-r from-violet-electric to-violet-soft py-3 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-60"
                 >
-                  Copier le TOKEN
+                  {loading ? 'Création en cours...' : 'Créer mon compte'}
                 </button>
               </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="border border-violet-electric/30 bg-violet-electric/10 rounded-lg p-6">
+                  <p className="font-mono text-xs text-ivory/50 uppercase tracking-wider mb-2">Ton pseudo</p>
+                  <p className="font-display text-3xl tracking-wider text-violet-electric">
+                    {result.pseudo}
+                  </p>
+                </div>
 
-              <p className="font-mono text-xs text-ivory/40 text-center">
-                Conserve ton TOKEN en sécurité. C'est ta clé d'accès!
-              </p>
-            </div>
-          )}
+                <div className="border border-violet-electric/30 bg-violet-electric/10 rounded-lg p-6">
+                  <p className="font-mono text-xs text-ivory/50 uppercase tracking-wider mb-2">Ton TOKEN</p>
+                  <p className="font-mono text-xs text-violet-electric break-all select-all bg-void/50 p-3 rounded">
+                    {result.token}
+                  </p>
+                  <p className="font-mono text-[10px] text-ivory/40 mt-4">
+                    Conserve ce TOKEN précieusement. C'est ta clé d'accès!
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setResult(null)
+                    setError(null)
+                  }}
+                  className="clip-tag w-full bg-violet-electric py-3 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110"
+                >
+                  Créer un autre compte
+                </button>
+
+                <a
+                  href="/"
+                  className="block w-full text-center font-mono text-xs text-ivory/60 hover:text-ivory/80 transition py-3"
+                >
+                  ← Retour à l'accueil
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </main>
       <Footer />
