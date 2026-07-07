@@ -69,7 +69,7 @@ export async function listAdminUsers(): Promise<AdminUser[]> {
     group by u.id
     order by u.created_at desc
   `
-  return rows as AdminUser[]
+  return rows as unknown as AdminUser[]
 }
 
 /* ─────────────────── Admin — flags ─────────────────── */
