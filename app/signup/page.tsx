@@ -6,6 +6,7 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { registerUser, loginWithToken } from '@/app/actions/auth'
 import { loginAdmin } from '@/app/actions/admin'
+import { HowItWorksModal } from '@/components/how-it-works-modal'
 
 type Tab = 'create' | 'login'
 
@@ -220,6 +221,9 @@ export default function SignupPage() {
             </div>
           )}
         </div>
+          <div className="mt-4 flex justify-center">
+            <HowItWorksModal />
+          </div>
       </main>
       <Footer />
     </>

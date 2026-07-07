@@ -7,6 +7,8 @@ import { getCurrentCustomer } from "@/app/actions/account"
 import { listMyOrders } from "@/app/actions/orders"
 import { tierForPoints } from "@/lib/loyalty"
 import { formatPrice } from "@/lib/utils"
+import { LoyaltyModal } from "@/components/loyalty-modal"
+import { PushSubscribeButton } from "@/components/push-subscribe-button"
 
 export const dynamic = "force-dynamic"
 
@@ -51,11 +53,18 @@ export default async function AccountPage() {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="mt-2 font-mono text-[11px] text-ivory/40">
-            {Math.max(0, tier.nextAt - customer.loyaltyPoints)} points avant le prochain palier &middot;
-            1 point gagné par euro dépensé
-          </p>
+          <div className="mt-3 flex items-center justify-between">
+            <p className="font-mono text-[11px] text-ivory/40">
+              {Math.max(0, tier.nextAt - customer.loyaltyPoints)} pts avant le prochain palier
+            </p>
+            <LoyaltyModal currentPoints={customer.loyaltyPoints} />
+          </div>
         </section>
+
+        {/* Notifications */}
+        <div className="mt-4 flex justify-end">
+          <PushSubscribeButton />
+        </div>
 
         {/* Commandes */}
         <section className="mt-10">
