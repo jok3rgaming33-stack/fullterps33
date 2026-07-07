@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck } from "lucide-react"
+import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin } from "lucide-react"
 import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
@@ -13,6 +13,7 @@ import { AdminUsersPanel } from "@/components/admin-users"
 import { AdminMessagingPanel } from "@/components/admin-messaging-panel"
 import { AdminSettingsPanel } from "@/components/admin-settings-panel"
 import { AdminVerificationsPanel } from "@/components/admin-verifications"
+import { AdminMap } from "@/components/admin-map"
 import type { AdminUser } from "@/app/actions/account"
 import type { OrderThread } from "@/app/actions/messaging"
 import type { NewsItem, CartConfig } from "@/app/actions/settings"
@@ -48,6 +49,7 @@ const TABS = [
   { id: "products",   label: "Produits",  icon: Package       },
   { id: "orders",     label: "Commandes", icon: ShoppingBag   },
   { id: "messages",   label: "Messages",  icon: MessageSquare },
+  { id: "map",        label: "Carte",     icon: MapPin        },
   { id: "kyc",        label: "KYC",       icon: ShieldCheck   },
   { id: "promos",     label: "Codes",     icon: Zap           },
   { id: "users",      label: "Membres",   icon: Users         },
@@ -250,6 +252,14 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
                 <span className="text-violet-electric/70 text-xl">({users.length})</span>
               </h2>
               <AdminUsersPanel users={users} />
+            </div>
+          )}
+
+          {/* CARTE */}
+          {active === "map" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">Carte de tournée</h2>
+              <AdminMap threads={threads} />
             </div>
           )}
 

@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
 
     const blob = await put(pathname, file, { access: "private", addRandomSuffix: true })
 
-    return NextResponse.json({ pathname: blob.pathname })
+    // On retourne l'URL complète (pas seulement le pathname) pour pouvoir
+    // générer des tokens signés depuis l'admin sans reconstruire l'URL.
+    return NextResponse.json({ pathname: blob.url })
   } catch (error) {
     console.error("[v0] verification upload error:", error)
     return NextResponse.json({ error: "Échec de l'envoi." }, { status: 500 })

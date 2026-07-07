@@ -12,9 +12,9 @@ interface Props {
 type MediaUrls = { photo: string | null; video: string | null }
 
 async function fetchMediaUrls(row: VerificationRow): Promise<MediaUrls> {
-  const get = async (pathname: string | null) => {
-    if (!pathname) return null
-    const res = await fetch(`/api/verification/media?pathname=${encodeURIComponent(pathname)}`)
+  const get = async (blobUrl: string | null) => {
+    if (!blobUrl) return null
+    const res = await fetch(`/api/verification/media?blobUrl=${encodeURIComponent(blobUrl)}`)
     if (!res.ok) return null
     const data = await res.json()
     return data.url as string

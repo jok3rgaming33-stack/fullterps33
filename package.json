@@ -10,9 +10,11 @@
     "setup-db": "node scripts/setup-db.mjs"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.21",
     "@vercel/blob": "^2.5.0",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.400.0",
     "next": "14.2.5",
     "postgres": "^3.4.4",
