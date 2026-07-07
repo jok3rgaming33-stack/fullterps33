@@ -24,14 +24,18 @@ function unsign(signed: string): string | null {
 
 // ---- Session client ----
 
-export async function setCustomerSession(customerId: number) {
+export async function setCustomerSession(customerIdOrToken: number | string) {
   const cookieStore = await cookies()
-  cookieStore.set(CUSTOMER_COOKIE, sign(String(customerId)), {
+  const sessionValue = typeof customerIdOrToken === 'number' 
+    ? String(customerIdOrToken)
+    : customerIdOrToken
+  
+  cookieStore.set(CUSTOMER_COOKIE, sign(sessionValue), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: 60 * 60 * 24 * 365, // 1 year for tokens
   })
 }
 
@@ -43,6 +47,16 @@ export async function getCustomerId(): Promise<number | null> {
   if (!value) return null
   const id = parseInt(value, 10)
   return Number.isNaN(id) ? null : id
+}
+
+export async function getCustomerToken(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get(CUSTOMER_COOKIE)?.value
+  if (!raw) return null
+  const value = unsign(raw)
+  if (!value) return null
+  // If it's a JWT-like token (contains dots), return it, otherwise return null
+  return value.includes('.') ? value : null
 }
 
 export async function clearCustomerSession() {

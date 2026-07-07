@@ -4,6 +4,7 @@ import { AdminDashboard } from "@/components/admin-dashboard"
 import { listProducts } from "@/app/actions/products"
 import { listPromoCodes } from "@/app/actions/promo"
 import { listAllOrders } from "@/app/actions/orders"
+import { listAllUsers } from "@/app/actions/auth"
 
 export const dynamic = "force-dynamic"
 
@@ -13,11 +14,19 @@ export default async function AdminPage() {
     return <AdminLoginForm />
   }
 
-  const [products, promos, orders] = await Promise.all([
+  const [products, promos, orders, users] = await Promise.all([
     listProducts(),
     listPromoCodes(),
     listAllOrders(),
+    listAllUsers(),
   ])
 
-  return <AdminDashboard products={products} promos={promos} orders={orders as any} />
+  return (
+    <AdminDashboard
+      products={products}
+      promos={promos}
+      orders={orders as any}
+      users={users}
+    />
+  )
 }
