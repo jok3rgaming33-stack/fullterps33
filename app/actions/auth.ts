@@ -76,25 +76,20 @@ export async function registerUser(): Promise<AuthResult> {
     const token = generateToken()
 
     // Create user
-    console.log('[AUTH] Creating user with pseudo:', pseudo, 'token:', token.substring(0, 10) + '...')
     await sql`
       insert into users (token, pseudo, created_ip)
       values (${token}, ${pseudo}, ${clientIP})
     `
-    console.log('[AUTH] User created successfully')
 
     // Track IP registration
-    console.log('[AUTH] Tracking IP registration from:', clientIP)
     await sql`
       insert into user_registrations_ip (ip, count, last_registration)
       values (${clientIP}, 1, now())
       on conflict (ip) do update set count = count + 1, last_registration = now()
     `
-    console.log('[AUTH] IP tracking recorded')
 
     // Set session with token
     await setCustomerSession(token)
-    console.log('[AUTH] Session set')
 
     return {
       ok: true,
@@ -104,17 +99,10 @@ export async function registerUser(): Promise<AuthResult> {
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
-    console.error('[AUTH] Registration error:', errorMsg)
-    console.error('[AUTH] Full error:', error)
-    
-    // Return more specific error messages
-    if (errorMsg.includes('duplicate key')) {
-      return { ok: false, message: 'Ce pseudo existe déjà' }
-    } else if (errorMsg.includes('UNIQUE constraint')) {
-      return { ok: false, message: 'Erreur: données en conflit' }
+    if (errorMsg.includes('duplicate key') || errorMsg.includes('UNIQUE constraint')) {
+      return { ok: false, message: 'Ce pseudo existe déjà, réessaie.' }
     }
-    
-    return { ok: false, message: `Erreur: ${errorMsg.substring(0, 50)}` }
+    return { ok: false, message: 'Erreur lors de l\'enregistrement. Réessaie.' }
   }
 }
 
@@ -182,4 +170,26 @@ export async function getCurrentUser(): Promise<{ token: string; pseudo: string;
 export async function logoutUser() {
   const { clearCustomerSession } = await import('@/lib/auth')
   await clearCustomerSession()
+}
+
+/**
+ * List all registered users — admin only
+ */
+export async function listAllUsers() {
+  const { isAdmin } = await import('@/lib/auth')
+  if (!await isAdmin()) throw new Error('Non autorisé')
+
+  const rows = await sql`
+    select id, token, pseudo, loyalty_points, created_at, created_ip
+    from users
+    order by created_at desc
+  `
+  return rows as unknown as {
+    id: number
+    token: string
+    pseudo: string
+    loyalty_points: number
+    created_at: string
+    created_ip: string | null
+  }[]
 }
