@@ -376,14 +376,16 @@ export function AdminUsersPanel({ users: initial }: { users: AdminUser[] }) {
       })}
 
       {/* ── modale Contacter ── */}
-      {contactId !== null && (
+      {contactId !== null && (() => {
+        const user = initial.find((u) => u.id === contactId)
+        return user ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-void/80 backdrop-blur-sm p-4">
           <div className="clip-card w-full max-w-md border border-white/10 bg-surface p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="font-display text-base tracking-wide">
                 Contacter{" "}
                 <span className="text-violet-electric">
-                  {initial.find((u) => u.id === contactId)?.pseudo}
+                  {user.pseudo}
                 </span>
               </p>
               <button onClick={() => setContactId(null)} className="text-ivory/40 hover:text-ivory">
@@ -432,7 +434,8 @@ export function AdminUsersPanel({ users: initial }: { users: AdminUser[] }) {
             </div>
           </div>
         </div>
-      )}
+        ) : null
+      })()}
 
     </div>
   )
