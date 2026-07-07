@@ -1,14 +1,17 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Plus, Trash2, Save, Zap, BellRing, Clock, Store } from "lucide-react"
+import { Plus, Trash2, Save, Zap, BellRing, Clock, Store, Truck } from "lucide-react"
 import {
   setSetting,
+  setCartConfig,
   createNews,
   updateNews,
   deleteNews,
   type NewsItem,
+  type CartConfig,
 } from "@/app/actions/settings"
+import { broadcastPush } from "@/app/actions/push"
 import { useRouter } from "next/navigation"
 
 const NEWS_TYPES = ["info", "warning", "alert", "promo"] as const
@@ -22,11 +25,31 @@ const NEWS_TYPE_META = {
 interface Props {
   settings: Record<string, any>
   news: NewsItem[]
+  cartConfig?: CartConfig
 }
 
-export function AdminSettingsPanel({ settings, news: initialNews }: Props) {
+const DEFAULT_CONFIG: CartConfig = {
+  minDeliveryAmount: 50,
+  deliverySlots: [
+    { id: "d1", label: "14H - 17H", startHour: 14, endHour: 17 },
+    { id: "d2", label: "18H - 20H", startHour: 18, endHour: 20 },
+    { id: "d3", label: "21H - 02H", startHour: 21, endHour: 2  },
+  ],
+  meetupSlots: [
+    { id: "m14", label: "14H", hour: 14 },
+    { id: "m18", label: "18H", hour: 18 },
+    { id: "m22", label: "22H", hour: 22 },
+  ],
+}
+
+export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: initialConfig }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const [logisticsFb, setLogisticsFb] = useState<string | null>(null)
+  const [config, setConfig] = useState<CartConfig>(initialConfig ?? DEFAULT_CONFIG)
+  const [pushTitle, setPushTitle] = useState("")
+  const [pushBody, setPushBody]   = useState("")
+  const [pushFb, setPushFb]       = useState<string | null>(null)
 
   // Boutique
   const [shopOpen, setShopOpen]       = useState<boolean>(settings.shop_open ?? true)
@@ -107,6 +130,66 @@ export function AdminSettingsPanel({ settings, news: initialNews }: Props) {
     })
   }
 
+  // ── Logistique ─────────────────────────────────────────────────────────────
+  function saveCartConfig() {
+    startTransition(async () => {
+      await setCartConfig(config)
+      setLogisticsFb("Configuration sauvegardée")
+      setTimeout(() => setLogisticsFb(null), 2500)
+    })
+  }
+
+  function updateDeliverySlot(idx: number, field: string, raw: string) {
+    setConfig(c => ({
+      ...c,
+      deliverySlots: c.deliverySlots.map((s, i) =>
+        i === idx ? { ...s, [field]: field === "label" ? raw : Number(raw) } : s
+      ),
+    }))
+  }
+
+  function removeDeliverySlot(idx: number) {
+    setConfig(c => ({ ...c, deliverySlots: c.deliverySlots.filter((_, i) => i !== idx) }))
+  }
+
+  function addDeliverySlot() {
+    setConfig(c => ({
+      ...c,
+      deliverySlots: [...c.deliverySlots, { id: `d${Date.now()}`, label: "Nouveau", startHour: 18, endHour: 20 }],
+    }))
+  }
+
+  function updateMeetupSlot(idx: number, field: string, raw: string) {
+    setConfig(c => ({
+      ...c,
+      meetupSlots: c.meetupSlots.map((s, i) =>
+        i === idx ? { ...s, [field]: field === "label" ? raw : Number(raw) } : s
+      ),
+    }))
+  }
+
+  function removeMeetupSlot(idx: number) {
+    setConfig(c => ({ ...c, meetupSlots: c.meetupSlots.filter((_, i) => i !== idx) }))
+  }
+
+  function addMeetupSlot() {
+    setConfig(c => ({
+      ...c,
+      meetupSlots: [...c.meetupSlots, { id: `m${Date.now()}`, label: "00H", hour: 0 }],
+    }))
+  }
+
+  // ── Push broadcast ─────────────────────────────────────────────────────────
+  function sendBroadcast() {
+    if (!pushTitle.trim()) return
+    startTransition(async () => {
+      const r = await broadcastPush(pushTitle, pushBody)
+      setPushFb(r.ok ? `Envoyé à ${r.sent} abonné(s)` : "Erreur envoi")
+      setPushTitle(""); setPushBody("")
+      setTimeout(() => setPushFb(null), 3000)
+    })
+  }
+
   const Section = ({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) => (
     <div className="border border-white/10 bg-surface/40 p-5 space-y-4">
       <div className="flex items-center gap-2 border-b border-white/10 pb-3">
@@ -179,6 +262,81 @@ export function AdminSettingsPanel({ settings, news: initialNews }: Props) {
             <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
+      </Section>
+
+      {/* Logistique cartConfig */}
+      <Section icon={Truck} title="Logistique — créneaux & montant min">
+        {logisticsFb && (
+          <p className="font-mono text-xs text-violet-electric">{logisticsFb}</p>
+        )}
+        {/* Montant minimum */}
+        <div className="flex items-center gap-3">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40 w-40">Montant min livraison</label>
+          <input
+            type="number" min={0}
+            value={config.minDeliveryAmount}
+            onChange={e => setConfig(c => ({ ...c, minDeliveryAmount: Number(e.target.value) }))}
+            className="w-24 bg-void border border-white/10 px-3 py-1.5 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60"
+          />
+          <span className="font-mono text-xs text-ivory/40">€</span>
+        </div>
+        {/* Créneaux livraison */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Créneaux livraison</p>
+            <button onClick={addDeliverySlot} className="flex items-center gap-1 font-mono text-[10px] text-violet-electric hover:underline">
+              <Plus className="h-3 w-3" /> Ajouter
+            </button>
+          </div>
+          {config.deliverySlots.map((slot, idx) => (
+            <div key={slot.id} className="flex flex-wrap items-center gap-2">
+              <input value={slot.label} onChange={e => updateDeliverySlot(idx, "label", e.target.value)}
+                className="flex-1 min-w-[100px] bg-void border border-white/10 px-2 py-1 font-mono text-xs text-ivory outline-none focus:border-violet-electric/60" />
+              <input type="number" min={0} max={23} value={slot.startHour} onChange={e => updateDeliverySlot(idx, "startHour", e.target.value)}
+                className="w-14 bg-void border border-white/10 px-2 py-1 font-mono text-xs text-ivory outline-none" />
+              <span className="font-mono text-[10px] text-ivory/30">→</span>
+              <input type="number" min={0} max={23} value={slot.endHour} onChange={e => updateDeliverySlot(idx, "endHour", e.target.value)}
+                className="w-14 bg-void border border-white/10 px-2 py-1 font-mono text-xs text-ivory outline-none" />
+              <button onClick={() => removeDeliverySlot(idx)} className="text-ivory/30 hover:text-signal transition"><Trash2 className="h-3 w-3" /></button>
+            </div>
+          ))}
+        </div>
+        {/* Créneaux meet-up */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Créneaux meet-up</p>
+            <button onClick={addMeetupSlot} className="flex items-center gap-1 font-mono text-[10px] text-violet-electric hover:underline">
+              <Plus className="h-3 w-3" /> Ajouter
+            </button>
+          </div>
+          {config.meetupSlots.map((slot, idx) => (
+            <div key={slot.id} className="flex flex-wrap items-center gap-2">
+              <input value={slot.label} onChange={e => updateMeetupSlot(idx, "label", e.target.value)}
+                className="flex-1 min-w-[80px] bg-void border border-white/10 px-2 py-1 font-mono text-xs text-ivory outline-none focus:border-violet-electric/60" />
+              <input type="number" min={0} max={23} value={slot.hour} onChange={e => updateMeetupSlot(idx, "hour", e.target.value)}
+                className="w-14 bg-void border border-white/10 px-2 py-1 font-mono text-xs text-ivory outline-none" />
+              <span className="font-mono text-[10px] text-ivory/40">h</span>
+              <button onClick={() => removeMeetupSlot(idx)} className="text-ivory/30 hover:text-signal transition"><Trash2 className="h-3 w-3" /></button>
+            </div>
+          ))}
+        </div>
+        <button onClick={saveCartConfig} disabled={pending}
+          className="flex items-center gap-1.5 bg-violet-electric/15 px-4 py-2 font-mono text-xs text-violet-electric ring-1 ring-violet-electric/30 hover:bg-violet-electric/25 transition disabled:opacity-50">
+          <Save className="h-3.5 w-3.5" /> Sauvegarder logistique
+        </button>
+      </Section>
+
+      {/* Push broadcast */}
+      <Section icon={BellRing} title="Notification push globale">
+        {pushFb && <p className="font-mono text-xs text-violet-electric">{pushFb}</p>}
+        <input value={pushTitle} onChange={e => setPushTitle(e.target.value)} placeholder="Titre de la notification"
+          className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+        <textarea value={pushBody} onChange={e => setPushBody(e.target.value)} placeholder="Corps du message" rows={2}
+          className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60 resize-none" />
+        <button onClick={sendBroadcast} disabled={pending || !pushTitle.trim()}
+          className="flex items-center gap-1.5 bg-violet-electric/15 px-4 py-2 font-mono text-xs text-violet-electric ring-1 ring-violet-electric/30 hover:bg-violet-electric/25 transition disabled:opacity-50">
+          <Zap className="h-3.5 w-3.5" /> Envoyer à tous les abonnés
+        </button>
       </Section>
 
       {/* Modes de livraison */}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare } from "lucide-react"
+import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck } from "lucide-react"
 import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
@@ -12,9 +12,11 @@ import { AdminPromosPanel } from "@/components/admin-promos-panel"
 import { AdminUsersPanel } from "@/components/admin-users"
 import { AdminMessagingPanel } from "@/components/admin-messaging-panel"
 import { AdminSettingsPanel } from "@/components/admin-settings-panel"
+import { AdminVerificationsPanel } from "@/components/admin-verifications"
 import type { AdminUser } from "@/app/actions/account"
 import type { OrderThread } from "@/app/actions/messaging"
-import type { NewsItem } from "@/app/actions/settings"
+import type { NewsItem, CartConfig } from "@/app/actions/settings"
+import type { VerificationRow } from "@/app/actions/verification"
 import { formatPrice } from "@/lib/utils"
 
 type OrderItem = { productId: string; name: string; size: string; price: number; quantity: number }
@@ -37,6 +39,8 @@ interface AdminDashboardProps {
   threads?: OrderThread[]
   appSettings?: Record<string, any>
   news?: NewsItem[]
+  cartConfig?: CartConfig
+  verifications?: VerificationRow[]
 }
 
 const TABS = [
@@ -44,6 +48,7 @@ const TABS = [
   { id: "products",   label: "Produits",  icon: Package       },
   { id: "orders",     label: "Commandes", icon: ShoppingBag   },
   { id: "messages",   label: "Messages",  icon: MessageSquare },
+  { id: "kyc",        label: "KYC",       icon: ShieldCheck   },
   { id: "promos",     label: "Codes",     icon: Zap           },
   { id: "users",      label: "Membres",   icon: Users         },
   { id: "settings",   label: "Réglages",  icon: Settings      },
@@ -51,7 +56,7 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"]
 
-export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [] }: AdminDashboardProps) {
+export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [] }: AdminDashboardProps) {
   const [active, setActive] = useState<TabId>("overview")
   const router = useRouter()
 
@@ -248,11 +253,24 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
             </div>
           )}
 
+          {/* KYC */}
+          {active === "kyc" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">
+                Vérifications KYC{" "}
+                {verifications.length > 0 && (
+                  <span className="text-violet-electric/70 text-xl">({verifications.length})</span>
+                )}
+              </h2>
+              <AdminVerificationsPanel initial={verifications} />
+            </div>
+          )}
+
           {/* SETTINGS */}
           {active === "settings" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Réglages</h2>
-              <AdminSettingsPanel settings={appSettings} news={news} />
+              <AdminSettingsPanel settings={appSettings} news={news} cartConfig={cartConfig} />
             </div>
           )}
 

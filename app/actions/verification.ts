@@ -19,6 +19,9 @@ export interface UserVerification {
   rejection_reason: string | null
 }
 
+// Alias enrichi retourné par listPendingVerifications (inclut pseudo)
+export type VerificationRow = UserVerification & { pseudo: string }
+
 /**
  * Get verification status for current user
  */
@@ -89,11 +92,9 @@ export async function saveVerificationFile(
 /**
  * List all pending verifications for admin
  */
-export async function listPendingVerifications(): Promise<
-  (UserVerification & { pseudo: string; email?: string })[] | null
-> {
+export async function listPendingVerifications(): Promise<VerificationRow[]> {
   try {
-    if (!(await isAdmin())) return null
+    if (!(await isAdmin())) return []
 
     const rows = await sql`
       select 
@@ -104,9 +105,9 @@ export async function listPendingVerifications(): Promise<
       where uv.status = 'pending'
       order by uv.created_at asc
     `
-    return rows as unknown as (UserVerification & { pseudo: string })[]
+    return rows as unknown as VerificationRow[]
   } catch {
-    return null
+    return []
   }
 }
 
