@@ -4,6 +4,7 @@ import { sql } from "@/lib/db"
 import { getCustomerToken, isAdmin } from "@/lib/auth"
 import { pointsForAmount } from "@/lib/loyalty"
 import { validatePromoCode } from "@/app/actions/promo"
+import { getVerificationStatus } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
 
 export type OrderItemInput = {
@@ -18,6 +19,12 @@ export type PlaceOrderResult = { ok: boolean; message: string; orderId?: number 
 
 export async function placeOrder(items: OrderItemInput[], promoCode?: string): Promise<PlaceOrderResult> {
   if (items.length === 0) return { ok: false, message: "Le panier est vide" }
+
+  // Vérifier KYC
+  const verification = await getVerificationStatus()
+  if (!verification || verification.status !== 'validated') {
+    return { ok: false, message: "Vérification d'identité requise pour finaliser la commande" }
+  }
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
   let discount = 0
