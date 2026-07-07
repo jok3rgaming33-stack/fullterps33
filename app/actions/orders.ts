@@ -66,7 +66,7 @@ export async function listMyOrders() {
   `
   return rows.map((r: any) => ({
     id: r.id,
-    items: r.items,
+    items: typeof r.items === "string" ? JSON.parse(r.items) : (r.items ?? []),
     total: r.total,
     status: r.status,
     createdAt: r.created_at,
@@ -79,7 +79,7 @@ export async function listAllOrders() {
   return rows.map((r: any) => ({
     id: r.id,
     userToken: r.user_token,
-    items: r.items,
+    items: typeof r.items === "string" ? JSON.parse(r.items) : (r.items ?? []),
     subtotal: r.subtotal,
     discount: r.discount,
     total: r.total,
