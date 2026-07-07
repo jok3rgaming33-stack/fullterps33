@@ -41,7 +41,8 @@ export function AdminVerificationsPanel() {
     if (photo) {
       try {
         const blob = await get(photo, { access: 'private' })
-        setPhotoUrl(URL.createObjectURL(blob.blob))
+        const fileBlob = blob as unknown as { blob: Blob }
+        setPhotoUrl(URL.createObjectURL(fileBlob.blob))
       } catch {
         setPhotoUrl(null)
       }
@@ -50,7 +51,8 @@ export function AdminVerificationsPanel() {
     if (video) {
       try {
         const blob = await get(video, { access: 'private' })
-        setVideoUrl(URL.createObjectURL(blob.blob))
+        const fileBlob = blob as unknown as { blob: Blob }
+        setVideoUrl(URL.createObjectURL(fileBlob.blob))
       } catch {
         setVideoUrl(null)
       }
