@@ -24,7 +24,7 @@ export function RestockButton({ productId, subscribed: initialSubscribed = false
     if (subscribed) {
       const r = await unsubscribeRestock(productId)
       if (r.ok) setSubscribed(false)
-      showFb(r.message)
+      showFb(r.ok ? "Alerte désactivée" : "Erreur")
     } else {
       const r = await subscribeRestock(productId)
       if (r.ok) setSubscribed(true)
