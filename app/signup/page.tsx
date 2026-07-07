@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { registerUser, loginWithToken } from '@/app/actions/auth'
+import { loginAdmin } from '@/app/actions/admin'
 
 type Tab = 'create' | 'login'
 
@@ -41,12 +42,19 @@ export default function SignupPage() {
     setLoading(true)
     setError(null)
     try {
+      // Essai comme token membre
       const res = await loginWithToken(tokenInput.trim())
       if (res.ok) {
         router.push('/compte')
-      } else {
-        setError(res.message)
+        return
       }
+      // Essai comme token admin
+      const adminRes = await loginAdmin(tokenInput.trim())
+      if (adminRes.ok) {
+        router.push('/admin')
+        return
+      }
+      setError('Token invalide ou expiré')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion')
     } finally {
