@@ -85,7 +85,7 @@ export async function registerUser(): Promise<AuthResult> {
     await sql`
       insert into user_registrations_ip (ip, count, last_registration)
       values (${clientIP}, 1, now())
-      on conflict (ip) do update set count = count + 1, last_registration = now()
+      on conflict (ip) do update set count = user_registrations_ip.count + 1, last_registration = now()
     `
 
     // Set session with token
@@ -102,8 +102,7 @@ export async function registerUser(): Promise<AuthResult> {
     if (errorMsg.includes('duplicate key') || errorMsg.includes('UNIQUE constraint')) {
       return { ok: false, message: 'Ce pseudo existe déjà, réessaie.' }
     }
-    // On expose l'erreur réelle en prod pour diagnostiquer
-    return { ok: false, message: `Erreur: ${errorMsg.slice(0, 120)}` }
+    return { ok: false, message: 'Erreur lors de l\'enregistrement. Réessaie.' }
   }
 }
 
