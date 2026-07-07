@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { OrderThread } from "@/app/actions/messaging"
-import { computeLoyaltyPoints } from "@/lib/loyalty"
+import { pointsForAmount } from "@/lib/loyalty"
 import { isClosedStatus } from "@/lib/order-status"
 import { getMapOrigin, setMapOrigin } from "@/app/actions/settings"
 import {
@@ -244,7 +244,7 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
     for (const t of located) {
       const diff = dayDiff(t.scheduledDate); const u = urgency(diff)
       const sel = selectedIds.has(t.id); const n = orderIndex.get(t.id)
-      const pts = computeLoyaltyPoints(t.total ?? 0)
+      const pts = pointsForAmount(t.total ?? 0)
       const key = t.userToken || t.customerName || ""; const count = orderCountByClient.get(key) ?? 1
       const inner = sel && n != null ? String(n) : ""
       const size = sel ? 26 : 18
