@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
-import argon2 from 'argon2'
+import bcrypt from 'bcryptjs'
 
 const SECRET = process.env.SESSION_SECRET || 'dev-secret-change-me-in-production'
 const CUSTOMER_COOKIE = 'ft33_session'
@@ -63,7 +63,7 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
     return password === (process.env.ADMIN_PASSWORD || '')
   }
   try {
-    return await argon2.verify(hash, password)
+    return await bcrypt.compare(password, hash)
   } catch {
     return false
   }
