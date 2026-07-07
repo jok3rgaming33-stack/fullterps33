@@ -1,6 +1,6 @@
 "use server"
 
-import { sql } from '@vercel/postgres'
+import { sql } from '@/lib/db'
 import { getCustomerToken, isAdmin } from "@/lib/auth"
 import { pointsForAmount } from "@/lib/loyalty"
 import { validatePromoCode } from "@/app/actions/promo"
