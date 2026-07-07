@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { OrderThread } from "@/app/actions/messaging"
 import { pointsForAmount } from "@/lib/loyalty"
-import { isClosedStatus } from "@/lib/order-status"
+const CLOSED_STATUSES = ["Livré", "Annulé"]
+const isClosedStatus = (s: string | null | undefined) => CLOSED_STATUSES.includes(s ?? "")
 import { getMapOrigin, setMapOrigin } from "@/app/actions/settings"
 import {
   Map as MapIcon, MapPinOff, Route, RotateCcw,
