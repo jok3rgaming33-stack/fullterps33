@@ -9,7 +9,7 @@ import { formatPrice } from "@/lib/utils"
 
 export default async function AccountPage() {
   const customer = await getCurrentCustomer()
-  if (!customer) redirect("/login")
+  if (!customer) redirect("/signup")
 
   const orders = await listMyOrders()
   const tier = tierForPoints(customer.loyaltyPoints)
@@ -23,7 +23,7 @@ export default async function AccountPage() {
           <div>
             <h1 className="font-display text-4xl tracking-wide text-ivory">Mon Compte</h1>
             <p className="mt-2 font-mono text-xs uppercase tracking-widest text-ivory/40">
-              {customer.name} · {customer.email}
+              {customer.pseudo}
             </p>
           </div>
           <LogoutButton />

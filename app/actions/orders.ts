@@ -1,7 +1,7 @@
 "use server"
 
 import { sql } from "@/lib/db"
-import { getCustomerId, isAdmin } from "@/lib/auth"
+import { getCustomerToken, isAdmin } from "@/lib/auth"
 import { pointsForAmount } from "@/lib/loyalty"
 import { validatePromoCode } from "@/app/actions/promo"
 import { revalidatePath } from "next/cache"
@@ -31,23 +31,17 @@ export async function placeOrder(items: OrderItemInput[], promoCode?: string): P
   }
 
   const total = Math.max(0, subtotal - discount)
-  const customerId = await getCustomerId()
-
-  let customerEmail: string | null = null
-  if (customerId) {
-    const rows = await sql`select email from customers where id = ${customerId}`
-    customerEmail = rows[0]?.email ?? null
-  }
+  const userToken = await getCustomerToken()
 
   const inserted = await sql`
-    insert into orders (customer_id, customer_email, items, subtotal, discount, total, promo_code, status)
-    values (${customerId}, ${customerEmail}, ${JSON.stringify(items)}, ${subtotal}, ${discount}, ${total}, ${appliedCode}, 'En préparation')
+    insert into orders (user_token, items, subtotal, discount, total, promo_code, status)
+    values (${userToken}, ${JSON.stringify(items)}, ${subtotal}, ${discount}, ${total}, ${appliedCode}, 'En préparation')
     returning id
   `
 
-  if (customerId) {
+  if (userToken) {
     const points = pointsForAmount(total)
-    await sql`update customers set loyalty_points = loyalty_points + ${points} where id = ${customerId}`
+    await sql`update users set loyalty_points = loyalty_points + ${points} where token = ${userToken}`
   }
 
   revalidatePath("/compte")
@@ -56,11 +50,11 @@ export async function placeOrder(items: OrderItemInput[], promoCode?: string): P
 }
 
 export async function listMyOrders() {
-  const customerId = await getCustomerId()
-  if (!customerId) return []
+  const userToken = await getCustomerToken()
+  if (!userToken) return []
   const rows = await sql`
     select id, items, total, status, created_at from orders
-    where customer_id = ${customerId}
+    where user_token = ${userToken}
     order by created_at desc
   `
   return rows.map((r: any) => ({
@@ -77,7 +71,7 @@ export async function listAllOrders() {
   const rows = await sql`select * from orders order by created_at desc limit 200`
   return rows.map((r: any) => ({
     id: r.id,
-    customerEmail: r.customer_email,
+    userToken: r.user_token,
     items: r.items,
     subtotal: r.subtotal,
     discount: r.discount,
