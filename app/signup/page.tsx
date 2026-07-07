@@ -13,22 +13,14 @@ export default function SignupPage() {
   const handleRegister = async () => {
     setLoading(true)
     setError(null)
-    console.log('[v0] Starting registration...')
-    
     try {
-      console.log('[v0] Calling registerUser()')
       const res = await registerUser()
-      console.log('[v0] Response:', res)
-      
       if (res.ok && res.token && res.pseudo) {
-        console.log('[v0] Success! Setting result')
         setResult({ pseudo: res.pseudo, token: res.token })
       } else {
-        console.log('[v0] Error response:', res.message)
         setError(res.message)
       }
     } catch (err) {
-      console.error('[v0] Catch error:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement')
     } finally {
       setLoading(false)

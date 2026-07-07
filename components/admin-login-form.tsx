@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Zap, Lock } from "lucide-react"
-import { adminLogin } from "@/app/actions/admin-auth"
+import { loginAdmin } from "@/app/actions/admin"
 
 export function AdminLoginForm() {
   const [password, setPassword] = useState("")
@@ -15,7 +15,7 @@ export function AdminLoginForm() {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await adminLogin(password)
+      const result = await loginAdmin(password)
       if (result.ok) {
         router.refresh()
       } else {

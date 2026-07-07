@@ -135,31 +135,25 @@ export async function loginWithToken(token: string): Promise<AuthResult> {
 }
 
 /**
- * Get current user from token
+ * Get current user from session cookie token
  */
 export async function getCurrentUser(): Promise<{ token: string; pseudo: string; loyaltyPoints: number } | null> {
   try {
-    const headersList = await headers()
-    const token = headersList.get('cookie')
-      ?.split(';')
-      .find(c => c.trim().startsWith('customer-session='))
-      ?.split('=')[1]
-
+    const { getCustomerToken } = await import('@/lib/auth')
+    const token = await getCustomerToken()
     if (!token) return null
 
     const rows = await sql`
       select token, pseudo, loyalty_points from users where token = ${token}
     `
-
     if (rows.length === 0) return null
 
     return {
       token: rows[0].token,
       pseudo: rows[0].pseudo,
-      loyaltyPoints: rows[0].loyalty_points
+      loyaltyPoints: rows[0].loyalty_points,
     }
-  } catch (error) {
-    console.error('[AUTH] Get current user error:', error)
+  } catch {
     return null
   }
 }

@@ -1,20 +1,20 @@
-import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-// Adjectives for pseudo generation
 const ADJECTIVES = [
   'Neon', 'Electric', 'Cosmic', 'Savage', 'Toxic', 'Rogue', 'Phoenix', 'Storm',
   'Shadow', 'Blaze', 'Sonic', 'Cyber', 'Venom', 'Ghost', 'Titan', 'Apex',
   'Nova', 'Void', 'Echo', 'Volt', 'Inferno', 'Mystic', 'Primal', 'Quantum'
 ]
 
-// Nouns for pseudo generation
 const NOUNS = [
   'Terps', 'Pulse', 'Strike', 'Force', 'Spirit', 'Vortex', 'Surge', 'Matrix',
   'Nexus', 'Flux', 'Zephyr', 'Typhoon', 'Raptor', 'Kraken', 'Sphinx', 'Dragon',
   'Raven', 'Falcon', 'Eagle', 'Panther', 'Viper', 'Scarab', 'Phoenix', 'Spectral'
 ]
 
+/**
+ * Generate a random unique pseudo: AdjectiveNoun0000
+ */
 export function generatePseudo(): string {
   const adjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]
   const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)]
@@ -22,31 +22,18 @@ export function generatePseudo(): string {
   return `${adjective}${noun}${number}`
 }
 
+/**
+ * Generate a cryptographically secure opaque token (64 hex chars).
+ * Stateless, no JWT — stored in DB and matched on login.
+ */
 export function generateToken(): string {
-  const secret = process.env.BETTER_AUTH_SECRET || 'dev-secret'
-  const payload = {
-    id: crypto.randomBytes(16).toString('hex'),
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 10 // 10 years
-  }
-  return jwt.sign(payload, secret, { algorithm: 'HS256' })
+  return crypto.randomBytes(32).toString('hex')
 }
 
-export function verifyToken(token: string): any {
-  try {
-    const secret = process.env.BETTER_AUTH_SECRET || 'dev-secret'
-    return jwt.verify(token, secret, { algorithms: ['HS256'] })
-  } catch (err) {
-    return null
-  }
-}
-
-export function getClientIP(headers: Headers | { 'x-forwarded-for'?: string; 'x-real-ip'?: string }): string {
-  if (headers instanceof Headers) {
-    return headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-           headers.get('x-real-ip') ||
-           'unknown'
-  }
+/**
+ * Extract client IP from request headers.
+ */
+export function getClientIP(headers: { 'x-forwarded-for'?: string; 'x-real-ip'?: string }): string {
   return headers['x-forwarded-for']?.split(',')[0].trim() ||
          headers['x-real-ip'] ||
          'unknown'
