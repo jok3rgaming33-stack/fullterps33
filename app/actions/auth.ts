@@ -102,7 +102,8 @@ export async function registerUser(): Promise<AuthResult> {
     if (errorMsg.includes('duplicate key') || errorMsg.includes('UNIQUE constraint')) {
       return { ok: false, message: 'Ce pseudo existe déjà, réessaie.' }
     }
-    return { ok: false, message: 'Erreur lors de l\'enregistrement. Réessaie.' }
+    // On expose l'erreur réelle en prod pour diagnostiquer
+    return { ok: false, message: `Erreur: ${errorMsg.slice(0, 120)}` }
   }
 }
 
