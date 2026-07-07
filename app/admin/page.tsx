@@ -15,7 +15,7 @@ export default async function AdminPage() {
   const admin = await isAdmin()
   if (!admin) return <AdminLoginForm />
 
-  const [products, promos, orders, users, threads, rawSettings, news, cartConfig, verifications] = await Promise.all([
+  const [products, promos, orders, users, threads, appSettings, news, cartConfig, verifications] = await Promise.all([
     listProducts(),
     listPromoCodes(),
     listAllOrders(),
@@ -26,11 +26,6 @@ export default async function AdminPage() {
     getCartConfig(),
     listPendingVerifications(),
   ])
-
-  const appSettings = rawSettings.reduce(
-    (acc, s) => ({ ...acc, [s.key]: s.value }),
-    {} as Record<string, any>
-  )
 
   return (
     <AdminDashboard

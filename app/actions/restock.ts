@@ -84,10 +84,11 @@ export async function triggerRestockNotifications(productId: string): Promise<{ 
   let notified = 0
   for (const alert of alerts) {
     try {
-      await sendPushToUser(alert.user_token, {
-        title: "Retour en stock",
-        body: `${productName} est de nouveau disponible — commande vite !`,
-      })
+      await sendPushToUser(
+        alert.user_token,
+        "Retour en stock",
+        `${productName} est de nouveau disponible — commande vite !`,
+      )
       notified++
     } catch { /* push peut échouer si pas de sub active */ }
   }
