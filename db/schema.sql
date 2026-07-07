@@ -22,14 +22,24 @@ create table if not exists user_registrations_ip (
 create table if not exists products (
   id text primary key,
   name text not null,
+  description text,
   price integer not null,
   category text not null,
   status text not null default 'disponible',
   badge text,
+  badges text[] not null default '{}',
   sizes text[] not null default '{}',
   sku text not null,
+  stock integer not null default 0,
   image text,
-  created_at timestamptz not null default now()
+  media text[] not null default '{}',
+  variants jsonb not null default '[]',
+  discount_type text,
+  discount_value integer,
+  sort_order integer not null default 0,
+  section text not null default 'general',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists promo_codes (
