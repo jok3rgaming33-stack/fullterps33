@@ -15,12 +15,17 @@ type CheckoutState = "idle" | "loading" | "success" | "error"
 
 type CartContextValue = {
   lines: CartLine[]
+  /** Alias for lines (BB33 compat) */
+  items: CartLine[]
   isOpen: boolean
   openCart: () => void
   closeCart: () => void
   addToCart: (product: Product, size: string) => void
   removeLine: (productId: string, size: string) => void
+  removeItem: (productId: string, size: string) => void
   updateQuantity: (productId: string, size: string, quantity: number) => void
+  updateQty: (productId: string, size: string, quantity: number) => void
+  clear: () => void
   totalCount: number
   subtotal: number
   discount: number
@@ -94,6 +99,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setPromoMessage(null)
   }
 
+  function clear() {
+    setLines([])
+    setPromoCode(null)
+    setDiscount(0)
+    setPromoMessage(null)
+    setCheckoutState("idle")
+    setCheckoutMessage(null)
+  }
+
   async function checkout() {
     setCheckoutState("loading")
     setCheckoutMessage(null)
@@ -129,12 +143,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider
       value={{
         lines,
+        items: lines,
         isOpen,
         openCart: () => setIsOpen(true),
         closeCart: () => setIsOpen(false),
         addToCart,
         removeLine,
+        removeItem: removeLine,
         updateQuantity,
+        updateQty: updateQuantity,
+        clear,
         totalCount,
         subtotal,
         discount,

@@ -4,14 +4,17 @@ import Link from "next/link"
 import { ShoppingBag, Menu, X } from "lucide-react"
 import { useState } from "react"
 import { useCart } from "@/components/cart-provider"
+import { NotificationBell } from "@/components/notification-bell"
+
+type UserData = { pseudo?: string; token?: string } | null
 
 const links = [
-  { href: "/#capsule", label: "Édition Capsule" },
+  { href: "/#capsule",    label: "Édition Capsule" },
   { href: "/#nouveautes", label: "Nouveautés" },
-  { href: "/compte", label: "Mon Compte" },
+  { href: "/compte",      label: "Mon Compte" },
 ]
 
-export function Navbar() {
+export function Navbar({ userData }: { userData?: UserData }) {
   const { totalCount, openCart } = useCart()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -42,6 +45,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
+          {userData && <NotificationBell userData={userData} />}
           <button
             onClick={openCart}
             className="relative flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-ivory/80 transition hover:text-violet-electric"
@@ -55,11 +59,7 @@ export function Navbar() {
               </span>
             )}
           </button>
-          <button
-            className="md:hidden"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Ouvrir le menu"
-          >
+          <button className="md:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="Ouvrir le menu">
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
