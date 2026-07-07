@@ -9,6 +9,8 @@ import type { PromoCode } from "@/app/actions/promo"
 import { AdminProductsPanel } from "@/components/admin-products-panel"
 import { AdminOrdersPanel } from "@/components/admin-orders-panel"
 import { AdminPromosPanel } from "@/components/admin-promos-panel"
+import { AdminUsersPanel } from "@/components/admin-users"
+import type { AdminUser } from "@/app/actions/account"
 import { formatPrice } from "@/lib/utils"
 
 type OrderItem = { productId: string; name: string; size: string; price: number; quantity: number }
@@ -23,20 +25,11 @@ type Order = {
   status: string
   createdAt: string
 }
-type User = {
-  id: number
-  pseudo: string
-  token: string
-  loyalty_points: number
-  created_at: string
-  created_ip: string | null
-}
-
 interface AdminDashboardProps {
   products: Product[]
   promos: PromoCode[]
   orders: Order[]
-  users?: User[]
+  users?: AdminUser[]
 }
 
 const TABS = [
@@ -235,44 +228,7 @@ export function AdminDashboard({ products, promos, orders, users = [] }: AdminDa
                 Membres{" "}
                 <span className="text-violet-electric/70 text-xl">({users.length})</span>
               </h2>
-
-              {users.length === 0 ? (
-                <div className="clip-card border border-white/10 bg-surface/50 p-8 text-center">
-                  <p className="font-mono text-sm text-ivory/40">
-                    Aucun membre inscrit pour l&apos;instant.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {users.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex flex-wrap items-center justify-between gap-3 border border-white/10 bg-surface/50 px-5 py-3 transition hover:bg-surface/80"
-                    >
-                      <div>
-                        <p className="font-display text-sm tracking-wide text-violet-electric">
-                          {u.pseudo}
-                        </p>
-                        <p className="font-mono text-[10px] text-ivory/40">
-                          Token: {u.token.slice(0, 16)}&hellip;
-                        </p>
-                        {u.created_ip && (
-                          <p className="font-mono text-[10px] text-ivory/30">
-                            IP: {u.created_ip} &middot;{" "}
-                            {new Date(u.created_at).toLocaleDateString("fr-FR")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-mono text-xs font-bold text-violet-electric">
-                          {u.loyalty_points} pts
-                        </p>
-                        <p className="font-mono text-[10px] text-ivory/40">Fidélité</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <AdminUsersPanel users={users} />
             </div>
           )}
 

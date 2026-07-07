@@ -4,7 +4,7 @@ import { AdminDashboard } from "@/components/admin-dashboard"
 import { listProducts } from "@/app/actions/products"
 import { listPromoCodes } from "@/app/actions/promo"
 import { listAllOrders } from "@/app/actions/orders"
-import { listAllUsers } from "@/app/actions/auth"
+import { listAdminUsers } from "@/app/actions/account"
 
 export const dynamic = "force-dynamic"
 
@@ -18,7 +18,7 @@ export default async function AdminPage() {
     listProducts(),
     listPromoCodes(),
     listAllOrders(),
-    listAllUsers(),
+    listAdminUsers(),
   ])
 
   return (
