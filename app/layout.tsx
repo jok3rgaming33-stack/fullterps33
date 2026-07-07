@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Anton, Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/components/cart-provider"
+import { NewsPopupLoader } from "@/components/news-popup"
 
 const anton = Anton({
   weight: "400",
@@ -26,9 +27,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" className="bg-void">
       <body className={`${anton.variable} ${inter.variable} ${jbmono.variable} font-body bg-void text-ivory antialiased`}>
         <CartProvider>{children}</CartProvider>
+        <NewsPopupLoader />
       </body>
     </html>
   )

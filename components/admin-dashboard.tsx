@@ -11,8 +11,10 @@ import { AdminOrdersPanel } from "@/components/admin-orders-panel"
 import { AdminPromosPanel } from "@/components/admin-promos-panel"
 import { AdminUsersPanel } from "@/components/admin-users"
 import { AdminMessagingPanel } from "@/components/admin-messaging-panel"
+import { AdminSettingsPanel } from "@/components/admin-settings-panel"
 import type { AdminUser } from "@/app/actions/account"
 import type { OrderThread } from "@/app/actions/messaging"
+import type { NewsItem } from "@/app/actions/settings"
 import { formatPrice } from "@/lib/utils"
 
 type OrderItem = { productId: string; name: string; size: string; price: number; quantity: number }
@@ -33,6 +35,8 @@ interface AdminDashboardProps {
   orders: Order[]
   users?: AdminUser[]
   threads?: OrderThread[]
+  appSettings?: Record<string, any>
+  news?: NewsItem[]
 }
 
 const TABS = [
@@ -47,7 +51,7 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"]
 
-export function AdminDashboard({ products, promos, orders, users = [], threads = [] }: AdminDashboardProps) {
+export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [] }: AdminDashboardProps) {
   const [active, setActive] = useState<TabId>("overview")
   const router = useRouter()
 
@@ -248,35 +252,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
           {active === "settings" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Réglages</h2>
-              <div className="clip-card border border-white/10 bg-surface/50 p-6 space-y-4">
-                <div>
-                  <p className="font-mono text-xs uppercase tracking-widest text-ivory/50 mb-1">
-                    Version
-                  </p>
-                  <p className="font-mono text-sm text-ivory">FULLTERPS33 Admin v1.0</p>
-                </div>
-                <div className="h-px bg-white/10" />
-                <div>
-                  <p className="font-mono text-xs uppercase tracking-widest text-ivory/50 mb-1">
-                    Session admin
-                  </p>
-                  <p className="font-mono text-sm text-ivory/60">
-                    Cookie sécurisé HMAC-SHA256 &middot; Expiration 4h
-                  </p>
-                </div>
-                <div className="h-px bg-white/10" />
-                <div>
-                  <p className="font-mono text-xs uppercase tracking-widest text-ivory/50 mb-2">
-                    Actions
-                  </p>
-                  <button
-                    onClick={handleLogout}
-                    className="clip-tag bg-signal/10 px-6 py-2.5 font-mono text-xs uppercase tracking-widest text-signal ring-1 ring-signal/30 transition hover:bg-signal/20"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
+              <AdminSettingsPanel settings={appSettings} news={news} />
             </div>
           )}
 
