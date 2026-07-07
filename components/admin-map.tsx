@@ -133,9 +133,12 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
 
   const saveOrigin = async () => {
     setSavingOrigin(true); setSavedOrigin(false)
-    const res = await setMapOrigin({ lat: departure.lat, lng: departure.lng })
-    setSavingOrigin(false)
-    if (res.ok) { setSavedOrigin(true); setTimeout(() => setSavedOrigin(false), 2000) }
+    try {
+      await setMapOrigin({ lat: departure.lat, lng: departure.lng })
+      setSavedOrigin(true); setTimeout(() => setSavedOrigin(false), 2000)
+    } finally {
+      setSavingOrigin(false)
+    }
   }
 
   const located = useMemo<Located[]>(
