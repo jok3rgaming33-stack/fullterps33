@@ -6,7 +6,7 @@ import { Zap, Lock } from "lucide-react"
 import { loginAdmin } from "@/app/actions/admin"
 
 export function AdminLoginForm() {
-  const [password, setPassword] = useState("")
+  const [token, setToken] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -15,11 +15,11 @@ export function AdminLoginForm() {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await loginAdmin(password)
+      const result = await loginAdmin(token)
       if (result.ok) {
         router.refresh()
       } else {
-        setError(result.message)
+        setError(result.error ?? "Token invalide.")
       }
     })
   }
@@ -74,14 +74,14 @@ export function AdminLoginForm() {
 
           <label className="flex flex-col gap-2">
             <span className="font-mono text-[10px] uppercase tracking-widest text-ivory/50">
-              Mot de passe admin
+              Token admin
             </span>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
               className="border border-white/15 bg-void px-4 py-3 text-sm text-ivory placeholder-ivory/20 outline-none transition-colors focus:border-violet-electric"
-              placeholder="••••••••"
+              placeholder="••••••••••••••••"
               autoFocus
               autoComplete="current-password"
             />
@@ -95,7 +95,7 @@ export function AdminLoginForm() {
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !token}
             className="clip-tag bg-violet-electric py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? "Vérification…" : "Entrer"}

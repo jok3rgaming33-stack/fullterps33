@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag } from "lucide-react"
-import { adminLogout } from "@/app/actions/admin-auth"
+import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
 import type { PromoCode } from "@/app/actions/promo"

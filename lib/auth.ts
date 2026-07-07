@@ -1,103 +1,85 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import crypto from 'crypto'
-import bcrypt from 'bcryptjs'
 
-const SECRET = process.env.SESSION_SECRET || 'dev-secret-change-me-in-production'
 const CUSTOMER_COOKIE = 'ft33_session'
-const ADMIN_COOKIE = 'ft33_admin'
+const ADMIN_COOKIE    = 'ft33_admin'
 
-// ---- HMAC signing for session cookies ----
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-function sign(value: string): string {
-  const mac = crypto.createHmac('sha256', SECRET).update(value).digest('hex')
-  return `${value}.${mac}`
+async function isHttps() {
+  const hdrs = await headers()
+  return (hdrs.get('x-forwarded-proto') ?? 'http') === 'https'
 }
 
-function unsign(signed: string): string | null {
-  const idx = signed.lastIndexOf('.')
-  if (idx === -1) return null
-  const value = signed.slice(0, idx)
-  const mac = signed.slice(idx + 1)
-  const expected = crypto.createHmac('sha256', SECRET).update(value).digest('hex')
-  const a = Buffer.from(mac, 'hex')
-  const b = Buffer.from(expected, 'hex')
-  if (a.length !== b.length) return null
-  return crypto.timingSafeEqual(a, b) ? value : null
-}
-
-// ---- User session (token-based, stateless) ----
+// ─── Utilisateur (token opaque, 1 an) ───────────────────────────────────────
 
 export async function setCustomerSession(token: string) {
-  const cookieStore = await cookies()
-  cookieStore.set(CUSTOMER_COOKIE, sign(token), {
+  const store = await cookies()
+  const secure = await isHttps()
+  store.set(CUSTOMER_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure,
+    sameSite: secure ? 'none' : 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 365, // 1 year
+    maxAge: 60 * 60 * 24 * 365,
   })
 }
 
 export async function getCustomerToken(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const raw = cookieStore.get(CUSTOMER_COOKIE)?.value
-  if (!raw) return null
-  return unsign(raw)
+  const store = await cookies()
+  return store.get(CUSTOMER_COOKIE)?.value ?? null
 }
 
 export async function clearCustomerSession() {
-  const cookieStore = await cookies()
-  cookieStore.delete(CUSTOMER_COOKIE)
+  const store = await cookies()
+  store.delete(CUSTOMER_COOKIE)
 }
 
-// ---- Admin session (Argon2 password, httpOnly cookie 1h) ----
+// ─── Admin (ADMIN_TOKEN ou pseudo+mot de passe scrypt) ───────────────────────
 
-/**
- * Verify a plaintext password against ADMIN_PASSWORD_HASH env var.
- * Returns true if password matches.
- */
-export async function verifyAdminPassword(password: string): Promise<boolean> {
-  const hash = process.env.ADMIN_PASSWORD_HASH
-  if (!hash) {
-    // Fallback: compare against ADMIN_PASSWORD (plain) for dev convenience
-    return password === (process.env.ADMIN_PASSWORD || '')
-  }
-  try {
-    return await bcrypt.compare(password, hash)
-  } catch {
-    return false
-  }
-}
-
-/**
- * Set admin session cookie (httpOnly, 1h expiry).
- */
-export async function setAdminSession() {
-  const cookieStore = await cookies()
-  const sessionId = crypto.randomBytes(16).toString('hex')
-  cookieStore.set(ADMIN_COOKIE, sign(sessionId), {
+export async function setAdminSession(token: string) {
+  const store = await cookies()
+  const secure = await isHttps()
+  store.set(ADMIN_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure,
+    sameSite: secure ? 'none' : 'lax',
     path: '/',
-    maxAge: 60 * 60, // 1 hour
+    maxAge: 60 * 60 * 24 * 30, // 30 jours
   })
 }
 
-/**
- * Check if current request has a valid admin session cookie.
- */
 export async function isAdmin(): Promise<boolean> {
-  const cookieStore = await cookies()
-  const raw = cookieStore.get(ADMIN_COOKIE)?.value
-  if (!raw) return false
-  return unsign(raw) !== null
+  const store = await cookies()
+  const session = store.get(ADMIN_COOKIE)?.value
+  if (!session) return false
+  // Vérifie contre ADMIN_TOKEN
+  if (process.env.ADMIN_TOKEN && session === process.env.ADMIN_TOKEN) return true
+  // Vérifie contre le hash dérivé de ADMIN_PASSWORD (fallback)
+  if (process.env.ADMIN_PASSWORD) {
+    const derived = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD).digest('hex')
+    if (session === derived) return true
+  }
+  return false
 }
 
-/**
- * Clear the admin session cookie (logout).
- */
 export async function clearAdminSession() {
-  const cookieStore = await cookies()
-  cookieStore.delete(ADMIN_COOKIE)
+  const store = await cookies()
+  store.delete(ADMIN_COOKIE)
+}
+
+// ─── Scrypt (hash de mot de passe admin — aucune dépendance externe) ─────────
+
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex')
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex')
+  return `${salt}:${hash}`
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(':')
+  if (!salt || !hash) return false
+  const candidate = crypto.scryptSync(password, salt, 64)
+  const original  = Buffer.from(hash, 'hex')
+  return candidate.length === original.length && crypto.timingSafeEqual(candidate, original)
 }

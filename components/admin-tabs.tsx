@@ -7,7 +7,7 @@ import { AdminProductsPanel } from "@/components/admin-products-panel"
 import { AdminCategoriesPanel } from "@/components/admin-categories-panel"
 import { AdminPromosPanel } from "@/components/admin-promos-panel"
 import { AdminOrdersPanel } from "@/components/admin-orders-panel"
-import { adminLogout } from "@/app/actions/admin-auth"
+import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 
 type Order = Parameters<typeof AdminOrdersPanel>[0]["orders"]
