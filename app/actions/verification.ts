@@ -23,6 +23,52 @@ export interface UserVerification {
 export type VerificationRow = UserVerification & { pseudo: string }
 
 /**
+ * Returns true if the user hasn't submitted a verification yet (first order requirement)
+ */
+export async function needsVerification(token: string | undefined | null): Promise<boolean> {
+  const t = token?.trim()
+  if (!t) return false
+  try {
+    const rows = await sql`
+      select id from user_verifications where user_token = ${t} limit 1
+    `
+    return rows.length === 0
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Save a completed verification (called after upload)
+ */
+export async function submitVerification(input: {
+  token: string
+  photoPathname: string
+  videoPathname: string
+}): Promise<{ ok: boolean; error?: string }> {
+  const t = input.token?.trim()
+  if (!t || !input.photoPathname || !input.videoPathname) {
+    return { ok: false, error: "Vérification incomplète." }
+  }
+  try {
+    const id = nanoid()
+    await sql`
+      insert into user_verifications (id, user_token, photo_pathname, video_pathname, status)
+      values (${id}, ${t}, ${input.photoPathname}, ${input.videoPathname}, 'pending')
+      on conflict (user_token) do update set
+        photo_pathname = excluded.photo_pathname,
+        video_pathname = excluded.video_pathname,
+        status = 'pending',
+        validated_at = null,
+        rejection_reason = null
+    `
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Erreur" }
+  }
+}
+
+/**
  * Get verification status for current user
  */
 export async function getVerificationStatus(): Promise<UserVerification | null> {

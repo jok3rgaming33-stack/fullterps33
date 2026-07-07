@@ -7,6 +7,8 @@ import { useCart } from "@/components/cart-provider"
 import { createOrderThread } from "@/app/actions/messaging"
 import { validatePromoCode } from "@/app/actions/promo"
 import { getCartConfig, type CartConfig, type DeliverySlot, type MeetupSlot } from "@/app/actions/settings"
+import { needsVerification, submitVerification } from "@/app/actions/verification"
+import { SelfieVerificationModal, type VerificationMetadata } from "@/components/selfie-verification-modal"
 import { formatPrice } from "@/lib/utils"
 
 type UserData = { pseudo?: string; token?: string } | null
@@ -82,6 +84,11 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
   const [placed, setPlaced]             = useState(false)
   const [submitting, setSubmitting]     = useState(false)
   const [submitError, setSubmitError]   = useState<string|null>(null)
+
+  // KYC
+  const [showVerif,     setShowVerif]     = useState(false)
+  const [verifPending,  setVerifPending]  = useState(false)
+  const [verifError,    setVerifError]    = useState<string|null>(null)
 
   const name = userData?.pseudo ?? "Invité"
 
@@ -166,10 +173,9 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
   const canValidate =
     lines.length > 0 &&
     !!date &&
-    (isMeetup ? !!meetupHour : !!address.trim() && !!slot && distanceKm != null)
+    (isMeetup ? !!meetupHour : !!address.trim() && !!slot)
 
-  const handleValidate = async () => {
-    if (!canValidate || submitting) return
+  const placeOrder = async () => {
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -198,10 +204,59 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
       } else {
         setSubmitError("Erreur lors de l'enregistrement, réessaie.")
       }
-    } catch (e) {
+    } catch {
       setSubmitError("Une erreur est survenue.")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleValidate = async () => {
+    if (!canValidate || submitting) return
+    // Auto-géocodage si adresse saisie mais pas encore vérifiée
+    if (!isMeetup && distanceKm == null && address.trim()) {
+      await checkAddress()
+      // checkAddress met à jour distanceKm de manière asynchrone via setState
+      // On re-déclenche après le prochain rendu via un flag — on sort ici
+      setSubmitError("Adresse vérifiée — clique à nouveau sur Passer commande.")
+      return
+    }
+    const token = userData?.token
+    // Vérifie si la vérification KYC est nécessaire
+    const required = await needsVerification(token)
+    if (required) {
+      setShowVerif(true)
+      return
+    }
+    await placeOrder()
+  }
+
+  const handleVerificationComplete = async (photo: File, video: File, _meta: VerificationMetadata) => {
+    const token = userData?.token
+    if (!token) { setVerifError("Session expirée. Reconnecte-toi."); return }
+    setVerifPending(true)
+    setVerifError(null)
+    try {
+      const upload = async (file: File, kind: "photo" | "video") => {
+        const fd = new FormData()
+        fd.append("file", file)
+        fd.append("token", token)
+        fd.append("kind", kind)
+        const res = await fetch("/api/verification/upload", { method: "POST", body: fd })
+        if (!res.ok) throw new Error(`Upload ${kind} échoué`)
+        const data = await res.json()
+        return data.pathname as string
+      }
+      const [photoPathname, videoPathname] = await Promise.all([upload(photo, "photo"), upload(video, "video")])
+      const saved = await submitVerification({ token, photoPathname, videoPathname })
+      if (!saved.ok) { setVerifError(saved.error ?? "Échec de l'enregistrement."); return }
+      setShowVerif(false)
+      // Passe la commande maintenant que la vérification est soumise
+      await placeOrder()
+    } catch {
+      setVerifError("Échec de l'envoi des fichiers. Réessaie.")
+    } finally {
+      setVerifPending(false)
     }
   }
 
@@ -459,6 +514,15 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
           </div>
         )}
       </aside>
+
+      {showVerif && (
+        <SelfieVerificationModal
+          onComplete={handleVerificationComplete}
+          onCancel={() => setShowVerif(false)}
+          submitting={verifPending}
+          submitError={verifError}
+        />
+      )}
     </>
   )
 }
