@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag } from "lucide-react"
+import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare } from "lucide-react"
 import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
@@ -10,7 +10,9 @@ import { AdminProductsPanel } from "@/components/admin-products-panel"
 import { AdminOrdersPanel } from "@/components/admin-orders-panel"
 import { AdminPromosPanel } from "@/components/admin-promos-panel"
 import { AdminUsersPanel } from "@/components/admin-users"
+import { AdminMessagingPanel } from "@/components/admin-messaging-panel"
 import type { AdminUser } from "@/app/actions/account"
+import type { OrderThread } from "@/app/actions/messaging"
 import { formatPrice } from "@/lib/utils"
 
 type OrderItem = { productId: string; name: string; size: string; price: number; quantity: number }
@@ -30,20 +32,22 @@ interface AdminDashboardProps {
   promos: PromoCode[]
   orders: Order[]
   users?: AdminUser[]
+  threads?: OrderThread[]
 }
 
 const TABS = [
-  { id: "overview",  label: "Aperçu",    icon: BarChart3  },
-  { id: "products",  label: "Produits",  icon: Package    },
-  { id: "orders",    label: "Commandes", icon: ShoppingBag},
-  { id: "promos",    label: "Codes",     icon: Zap        },
-  { id: "users",     label: "Membres",   icon: Users      },
-  { id: "settings",  label: "Réglages",  icon: Settings   },
+  { id: "overview",   label: "Aperçu",    icon: BarChart3     },
+  { id: "products",   label: "Produits",  icon: Package       },
+  { id: "orders",     label: "Commandes", icon: ShoppingBag   },
+  { id: "messages",   label: "Messages",  icon: MessageSquare },
+  { id: "promos",     label: "Codes",     icon: Zap           },
+  { id: "users",      label: "Membres",   icon: Users         },
+  { id: "settings",   label: "Réglages",  icon: Settings      },
 ] as const
 
 type TabId = typeof TABS[number]["id"]
 
-export function AdminDashboard({ products, promos, orders, users = [] }: AdminDashboardProps) {
+export function AdminDashboard({ products, promos, orders, users = [], threads = [] }: AdminDashboardProps) {
   const [active, setActive] = useState<TabId>("overview")
   const router = useRouter()
 
@@ -210,6 +214,14 @@ export function AdminDashboard({ products, promos, orders, users = [] }: AdminDa
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Commandes</h2>
               <AdminOrdersPanel orders={orders} />
+            </div>
+          )}
+
+          {/* MESSAGES */}
+          {active === "messages" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">Messages</h2>
+              <AdminMessagingPanel initial={threads} />
             </div>
           )}
 

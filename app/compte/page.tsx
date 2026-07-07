@@ -1,17 +1,37 @@
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { LogoutButton } from "@/components/logout-button"
+import { OrderThreadModal } from "@/components/order-thread-modal"
 import { getCurrentCustomer } from "@/app/actions/account"
 import { listMyOrders } from "@/app/actions/orders"
 import { tierForPoints } from "@/lib/loyalty"
+import { statusMeta } from "@/lib/order-status"
 import { formatPrice } from "@/lib/utils"
+import { MessageSquare } from "lucide-react"
 
-export default async function AccountPage() {
-  const customer = await getCurrentCustomer()
-  if (!customer) redirect("/signup")
+type Customer = Awaited<ReturnType<typeof getCurrentCustomer>>
+type Order = Awaited<ReturnType<typeof listMyOrders>>[number]
 
-  const orders = await listMyOrders()
+export default function AccountPage() {
+  const [customer, setCustomer] = useState<Customer>(null)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [threadOrderId, setThreadOrderId] = useState<number | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    Promise.all([getCurrentCustomer(), listMyOrders()]).then(([c, o]) => {
+      if (!c) { router.push("/signup"); return }
+      setCustomer(c)
+      setOrders(o)
+    })
+  }, [router])
+
+  if (!customer) return null
+
   const tier = tierForPoints(customer.loyaltyPoints)
   const progress = Math.min(100, Math.round((customer.loyaltyPoints / tier.nextAt) * 100))
 
@@ -49,7 +69,7 @@ export default async function AccountPage() {
             />
           </div>
           <p className="mt-2 font-mono text-[11px] text-ivory/40">
-            {Math.max(0, tier.nextAt - customer.loyaltyPoints)} points avant le prochain palier ·
+            {Math.max(0, tier.nextAt - customer.loyaltyPoints)} points avant le prochain palier &middot;
             1 point gagné par euro dépensé
           </p>
         </section>
@@ -58,37 +78,56 @@ export default async function AccountPage() {
         <section className="mt-10">
           <h2 className="mb-4 font-display text-2xl tracking-wide">Mes commandes</h2>
           {orders.length === 0 ? (
-            <p className="font-mono text-sm text-ivory/40">Aucune commande pour l'instant.</p>
+            <p className="font-mono text-sm text-ivory/40">Aucune commande pour l&apos;instant.</p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {orders.map((o) => (
-                <li
-                  key={o.id}
-                  className="flex items-center justify-between border border-white/10 bg-surface px-5 py-4"
-                >
-                  <div>
-                    <p className="font-mono text-sm text-ivory">Commande #{o.id}</p>
-                    <p className="font-mono text-[11px] text-ivory/40">
-                      {new Date(o.createdAt).toLocaleDateString("fr-FR", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <span className="font-mono text-sm font-bold">{formatPrice(o.total)}</span>
-                    <span className="clip-tag bg-violet-deep px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-ivory">
-                      {o.status}
-                    </span>
-                  </div>
-                </li>
-              ))}
+              {orders.map((o) => {
+                const meta = statusMeta(o.status)
+                return (
+                  <li
+                    key={o.id}
+                    className="border border-white/10 bg-surface px-5 py-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-mono text-sm text-ivory">Commande #{o.id}</p>
+                        <p className="font-mono text-[11px] text-ivory/40">
+                          {new Date(o.createdAt).toLocaleDateString("fr-FR", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-sm font-bold">{formatPrice(o.total)}</span>
+                        <span className={`clip-tag px-3 py-1 font-mono text-[10px] uppercase tracking-wide ${meta.bg} ${meta.color} ring-1 ${meta.ring}`}>
+                          {meta.label}
+                        </span>
+                        <button
+                          onClick={() => setThreadOrderId(o.id)}
+                          className="flex items-center justify-center w-8 h-8 border border-white/10 text-ivory/40 transition hover:border-violet-electric/40 hover:text-violet-electric"
+                          title="Contacter / Suivre"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>
       </main>
       <Footer />
+
+      {threadOrderId !== null && (
+        <OrderThreadModal
+          orderId={threadOrderId}
+          onClose={() => setThreadOrderId(null)}
+        />
+      )}
     </>
   )
 }
