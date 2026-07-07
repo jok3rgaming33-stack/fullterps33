@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+import { getCustomerToken } from "@/lib/auth"
 import { Navbar } from "@/components/navbar"
 import { Hero } from "@/components/hero"
 import { ProductSection } from "@/components/product-section"
@@ -7,7 +9,10 @@ import { Footer } from "@/components/footer"
 
 export const dynamic = "force-dynamic"
 
-export default function HomePage() {
+export default async function HomePage() {
+  const token = await getCustomerToken()
+  if (!token) redirect("/signup")
+
   return (
     <>
       <Navbar />

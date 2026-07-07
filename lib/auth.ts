@@ -53,11 +53,11 @@ export async function isAdmin(): Promise<boolean> {
   const store = await cookies()
   const session = store.get(ADMIN_COOKIE)?.value
   if (!session) return false
-  // Vérifie contre ADMIN_TOKEN
-  if (process.env.ADMIN_TOKEN && session === process.env.ADMIN_TOKEN) return true
-  // Vérifie contre le hash dérivé de ADMIN_PASSWORD (fallback)
-  if (process.env.ADMIN_PASSWORD) {
-    const derived = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD).digest('hex')
+  const envToken = (process.env.ADMIN_TOKEN ?? '').trim().replace(/\s+/g, '')
+  if (envToken && session === envToken) return true
+  const envPassword = (process.env.ADMIN_PASSWORD ?? '').trim().replace(/\s+/g, '')
+  if (envPassword) {
+    const derived = crypto.createHash('sha256').update(envPassword).digest('hex')
     if (session === derived) return true
   }
   return false
