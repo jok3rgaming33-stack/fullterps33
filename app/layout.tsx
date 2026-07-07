@@ -21,6 +21,8 @@ const jbmono = JetBrains_Mono({
   variable: "--font-jbmono",
 })
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "FULLTERPS33 — Streetwear",
   description: "Édition capsule streetwear FULLTERPS33. Orage urbain, coupes larges, éclairs violets.",
