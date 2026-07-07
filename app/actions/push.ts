@@ -35,7 +35,7 @@ export async function sendPushToUser(userToken: string, title: string, body: str
   const rows = await sql`select endpoint, p256dh, auth from push_subscriptions where user_token = ${userToken}`
   const payload = JSON.stringify({ title, body, icon: '/icon-192.png', badge: '/icon-192.png' })
   await Promise.allSettled(
-    rows.rows.map((r) =>
+    rows.map((r: { endpoint: string; p256dh: string; auth: string }) =>
       webpush.sendNotification({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload)
     )
   )
@@ -47,7 +47,7 @@ export async function broadcastPush(title: string, body: string): Promise<{ ok: 
   const rows = await sql`select endpoint, p256dh, auth from push_subscriptions`
   const payload = JSON.stringify({ title, body, icon: '/icon-192.png', badge: '/icon-192.png' })
   const results = await Promise.allSettled(
-    rows.rows.map((r) =>
+    rows.map((r: { endpoint: string; p256dh: string; auth: string }) =>
       webpush.sendNotification({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload)
     )
   )
