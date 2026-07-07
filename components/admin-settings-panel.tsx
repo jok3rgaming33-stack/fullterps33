@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Plus, Trash2, Save, Zap, BellRing, Clock, Store, Truck } from "lucide-react"
+import { Plus, Trash2, Save, Zap, BellRing, Clock, Store, Truck, Type } from "lucide-react"
 import {
   setSetting,
   setCartConfig,
@@ -50,6 +50,31 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   const [pushTitle, setPushTitle] = useState("")
   const [pushBody, setPushBody]   = useState("")
   const [pushFb, setPushFb]       = useState<string | null>(null)
+
+  // Textes du site
+  const [heroEyebrow,    setHeroEyebrow]    = useState<string>(settings.hero_eyebrow    ?? "Édition Capsule — Automne")
+  const [heroBody,       setHeroBody]       = useState<string>(settings.hero_body       ?? "Coupes larges, matières lourdes, silhouette orage. Le streetwear pensé pour la rue, la nuit, et ce qui gronde au-dessus.")
+  const [heroCtaLabel,   setHeroCtaLabel]   = useState<string>(settings.hero_cta_label  ?? "Voir la collection")
+  const [footerTagline,  setFooterTagline]  = useState<string>(settings.footer_tagline  ?? "Que de la foudre la famille.")
+  const [footerCopyright,setFooterCopyright]= useState<string>(settings.footer_copyright ?? `© ${new Date().getFullYear()} HEISENWEB — Tous droits réservés`)
+  const [siteName,       setSiteName]       = useState<string>(settings.site_name       ?? "FULLTERPS33")
+  const [siteTextsFb,    setSiteTextsFb]    = useState<string | null>(null)
+
+  function saveSiteTexts() {
+    startTransition(async () => {
+      await Promise.all([
+        setSetting("hero_eyebrow",     heroEyebrow),
+        setSetting("hero_body",        heroBody),
+        setSetting("hero_cta_label",   heroCtaLabel),
+        setSetting("footer_tagline",   footerTagline),
+        setSetting("footer_copyright", footerCopyright),
+        setSetting("site_name",        siteName),
+      ])
+      setSiteTextsFb("Textes sauvegardés")
+      setTimeout(() => setSiteTextsFb(null), 2500)
+      router.refresh()
+    })
+  }
 
   // Boutique
   const [shopOpen, setShopOpen]       = useState<boolean>(settings.shop_open ?? true)
@@ -202,6 +227,49 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
 
   return (
     <div className="space-y-6">
+
+      {/* Textes du site */}
+      <Section icon={Type} title="Textes du site">
+        {siteTextsFb && <p className="font-mono text-xs text-violet-electric">{siteTextsFb}</p>}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Nom du site</label>
+            <input value={siteName} onChange={e => setSiteName(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Hero — Accroche</label>
+            <input value={heroEyebrow} onChange={e => setHeroEyebrow(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Hero — Description</label>
+            <textarea value={heroBody} onChange={e => setHeroBody(e.target.value)} rows={3}
+              className="w-full resize-none bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Hero — Bouton principal</label>
+            <input value={heroCtaLabel} onChange={e => setHeroCtaLabel(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Footer — Slogan</label>
+            <input value={footerTagline} onChange={e => setFooterTagline(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Footer — Copyright</label>
+            <input value={footerCopyright} onChange={e => setFooterCopyright(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+        </div>
+
+        <button onClick={saveSiteTexts} disabled={pending}
+          className="flex items-center gap-1.5 bg-violet-electric/15 px-4 py-2 font-mono text-xs text-violet-electric ring-1 ring-violet-electric/30 hover:bg-violet-electric/25 transition disabled:opacity-50">
+          <Save className="h-3.5 w-3.5" /> Sauvegarder les textes
+        </button>
+      </Section>
 
       {/* Statut boutique */}
       <Section icon={Store} title="Statut boutique">

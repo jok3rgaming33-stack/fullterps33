@@ -100,3 +100,11 @@ export async function updateOrderStatus(orderId: number, status: string) {
   revalidatePath("/admin")
   revalidatePath("/compte")
 }
+
+export async function deleteOrder(orderId: number): Promise<{ ok: boolean }> {
+  if (!await isAdmin()) return { ok: false }
+  await sql`delete from orders where id = ${orderId}`
+  revalidatePath("/admin")
+  revalidatePath("/compte")
+  return { ok: true }
+}
