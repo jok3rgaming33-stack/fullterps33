@@ -29,6 +29,8 @@ export default async function HomePage() {
             eyebrow: "En vedette",
             title: "Édition Capsule",
             gridCols: "md:grid-cols-4",
+            eyebrowKey: "section_capsule_eyebrow",
+            titleKey:   "section_capsule_title",
           }}
         />
         <LightningDivider label="orage urbain" />
@@ -39,6 +41,8 @@ export default async function HomePage() {
             eyebrow: "Fraîchement débarqué",
             title: "Nouveautés",
             gridCols: "md:grid-cols-4",
+            eyebrowKey: "section_nouveautes_eyebrow",
+            titleKey:   "section_nouveautes_title",
           }}
         />
       </main>

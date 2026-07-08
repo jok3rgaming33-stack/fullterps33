@@ -57,18 +57,30 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   const [heroCtaLabel,   setHeroCtaLabel]   = useState<string>(settings.hero_cta_label  ?? "Voir la collection")
   const [footerTagline,  setFooterTagline]  = useState<string>(settings.footer_tagline  ?? "Que de la foudre la famille.")
   const [footerCopyright,setFooterCopyright]= useState<string>(settings.footer_copyright ?? `© ${new Date().getFullYear()} HEISENWEB — Tous droits réservés`)
-  const [siteName,       setSiteName]       = useState<string>(settings.site_name       ?? "FULLTERPS33")
-  const [siteTextsFb,    setSiteTextsFb]    = useState<string | null>(null)
+  const [siteName,            setSiteName]            = useState<string>(settings.site_name             ?? "FULLTERPS33")
+  const [navLabelCapsule,     setNavLabelCapsule]     = useState<string>(settings.nav_label_capsule      ?? "Édition Capsule")
+  const [navLabelNouveautes,  setNavLabelNouveautes]  = useState<string>(settings.nav_label_nouveautes   ?? "Nouveautés")
+  const [secCapsuleEyebrow,   setSecCapsuleEyebrow]   = useState<string>(settings.section_capsule_eyebrow  ?? "En vedette")
+  const [secCapsuleTitle,     setSecCapsuleTitle]     = useState<string>(settings.section_capsule_title    ?? "Édition Capsule")
+  const [secNouveautesEyebrow,setSecNouveautesEyebrow]= useState<string>(settings.section_nouveautes_eyebrow ?? "Fraîchement débarqué")
+  const [secNouveautesTitle,  setSecNouveautesTitle]  = useState<string>(settings.section_nouveautes_title   ?? "Nouveautés")
+  const [siteTextsFb,         setSiteTextsFb]         = useState<string | null>(null)
 
   function saveSiteTexts() {
     startTransition(async () => {
       await Promise.all([
-        setSetting("hero_eyebrow",     heroEyebrow),
-        setSetting("hero_body",        heroBody),
-        setSetting("hero_cta_label",   heroCtaLabel),
-        setSetting("footer_tagline",   footerTagline),
-        setSetting("footer_copyright", footerCopyright),
-        setSetting("site_name",        siteName),
+        setSetting("hero_eyebrow",                heroEyebrow),
+        setSetting("hero_body",                   heroBody),
+        setSetting("hero_cta_label",              heroCtaLabel),
+        setSetting("footer_tagline",              footerTagline),
+        setSetting("footer_copyright",            footerCopyright),
+        setSetting("site_name",                   siteName),
+        setSetting("nav_label_capsule",           navLabelCapsule),
+        setSetting("nav_label_nouveautes",        navLabelNouveautes),
+        setSetting("section_capsule_eyebrow",     secCapsuleEyebrow),
+        setSetting("section_capsule_title",       secCapsuleTitle),
+        setSetting("section_nouveautes_eyebrow",  secNouveautesEyebrow),
+        setSetting("section_nouveautes_title",    secNouveautesTitle),
       ])
       setSiteTextsFb("Textes sauvegardés")
       setTimeout(() => setSiteTextsFb(null), 2500)
@@ -261,6 +273,46 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
           <div className="space-y-1 sm:col-span-2">
             <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Footer — Copyright</label>
             <input value={footerCopyright} onChange={e => setFooterCopyright(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/30 pt-2">Liens de navigation</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Lien Capsule</label>
+            <input value={navLabelCapsule} onChange={e => setNavLabelCapsule(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Lien Nouveautés</label>
+            <input value={navLabelNouveautes} onChange={e => setNavLabelNouveautes(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+        </div>
+
+        {/* Sections page d'accueil */}
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/30 pt-2">Sections page d&apos;accueil</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Capsule — Sous-titre</label>
+            <input value={secCapsuleEyebrow} onChange={e => setSecCapsuleEyebrow(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Capsule — Titre</label>
+            <input value={secCapsuleTitle} onChange={e => setSecCapsuleTitle(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Nouveautés — Sous-titre</label>
+            <input value={secNouveautesEyebrow} onChange={e => setSecNouveautesEyebrow(e.target.value)}
+              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
+          </div>
+          <div className="space-y-1">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Nouveautés — Titre</label>
+            <input value={secNouveautesTitle} onChange={e => setSecNouveautesTitle(e.target.value)}
               className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
           </div>
         </div>

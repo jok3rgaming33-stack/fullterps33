@@ -58,16 +58,20 @@ export function OrderThreadModal({ orderId, onClose }: Props) {
       <div className="flex w-full max-w-lg flex-col border border-white/10 bg-surface" style={{ maxHeight: "80vh" }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="h-4 w-4 text-violet-electric" />
-            <div>
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <MessageSquare className="h-4 w-4 shrink-0 text-violet-electric" />
+            <div className="min-w-0">
               <p className="font-display text-sm tracking-wide">Commande #{orderId}</p>
               <span className={`font-mono text-[10px] uppercase tracking-widest ${meta.color}`}>{meta.label}</span>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 text-ivory/40 transition hover:text-ivory">
-            <X className="h-4 w-4" />
+          <button
+            onClick={onClose}
+            className="ml-3 shrink-0 rounded-sm p-2 text-ivory/40 transition hover:bg-white/10 hover:text-ivory"
+            aria-label="Fermer"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
