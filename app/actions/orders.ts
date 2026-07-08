@@ -75,35 +75,45 @@ export async function listMyOrders() {
 
 export async function listAllOrders() {
   if (!await isAdmin()) throw new Error("Non autorisé")
-  const rows = await sql`select * from orders order by created_at desc limit 200`
+  // Les vraies commandes sont dans order_threads (créées par createOrderThread dans checkout-cart)
+  const rows = await sql`
+    select id, customer_name, summary, products, total, status, fulfillment,
+           scheduled_date, scheduled_slot, address, created_at
+    from order_threads
+    order by created_at desc
+    limit 200
+  `
   return rows.map((r: any) => ({
-    id: r.id,
-    userToken: r.user_token,
-    items: typeof r.items === "string" ? JSON.parse(r.items) : (r.items ?? []),
-    subtotal: r.subtotal,
-    discount: r.discount,
-    total: r.total,
-    promoCode: r.promo_code,
-    status: r.status,
-    createdAt: r.created_at,
+    id:            r.id,
+    ref:           `FT-${String(r.id).padStart(4, "0")}`,
+    customerName:  r.customer_name ?? "Membre",
+    summary:       r.summary ?? "",
+    products:      r.products ?? "",
+    total:         Number(r.total ?? 0),
+    status:        r.status ?? "en_attente",
+    fulfillment:   r.fulfillment ?? "",
+    scheduledDate: r.scheduled_date ?? "",
+    scheduledSlot: r.scheduled_slot ?? "",
+    address:       r.address ?? "",
+    createdAt:     r.created_at,
   }))
 }
 
-const STATUSES = ["En préparation", "Expédiée", "Livrée", "Annulée"] as const
+const STATUSES = ["en_attente", "confirmee", "en_route", "livree", "annulee"] as const
 
 export async function updateOrderStatus(orderId: number, status: string) {
   if (!await isAdmin()) throw new Error("Non autorisé")
   if (!STATUSES.includes(status as (typeof STATUSES)[number])) {
     throw new Error("Statut invalide")
   }
-  await sql`update orders set status = ${status} where id = ${orderId}`
+  await sql`update order_threads set status = ${status} where id = ${orderId}`
   revalidatePath("/admin")
   revalidatePath("/compte")
 }
 
 export async function deleteOrder(orderId: number): Promise<{ ok: boolean }> {
   if (!await isAdmin()) return { ok: false }
-  await sql`delete from orders where id = ${orderId}`
+  await sql`delete from order_threads where id = ${orderId}`
   revalidatePath("/admin")
   revalidatePath("/compte")
   return { ok: true }

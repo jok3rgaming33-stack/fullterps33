@@ -21,16 +21,18 @@ import type { NewsItem, CartConfig, ShopSection } from "@/app/actions/settings"
 import type { VerificationRow } from "@/app/actions/verification"
 import { formatPrice } from "@/lib/utils"
 
-type OrderItem = { productId: string; name: string; size: string; price: number; quantity: number }
 type Order = {
   id: number
-  customerEmail: string | null
-  items: OrderItem[]
-  subtotal: number
-  discount: number
+  ref: string
+  customerName: string
+  summary: string
+  products: string
   total: number
-  promoCode: string | null
   status: string
+  fulfillment: string
+  scheduledDate: string
+  scheduledSlot: string
+  address: string
   createdAt: string
 }
 interface AdminDashboardProps {
@@ -195,12 +197,14 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
                       >
                         <div>
                           <p className="font-mono text-sm">
-                            Commande{" "}
-                            <span className="text-violet-electric">#{o.id}</span>
+                            <span className="text-violet-electric">{o.ref}</span>
+                            {" — "}{o.customerName}
                           </p>
                           <p className="font-mono text-[10px] text-ivory/40">
-                            {o.customerEmail ?? "Token session"} &middot;{" "}
-                            {new Date(o.createdAt).toLocaleDateString("fr-FR")}
+                            {o.products
+                              ? o.products.length > 40 ? o.products.slice(0, 40) + "…" : o.products
+                              : "—"
+                            }{" · "}{new Date(o.createdAt).toLocaleDateString("fr-FR")}
                           </p>
                         </div>
                         <div className="text-right">

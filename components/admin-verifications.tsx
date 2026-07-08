@@ -134,7 +134,6 @@ export function AdminVerificationsPanel({ initial }: Props) {
                   alt="Selfie de vérification"
                   className="w-full border border-white/10 object-cover"
                   style={{ maxHeight: 260 }}
-                  crossOrigin="anonymous"
                 />
               ) : (
                 <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">

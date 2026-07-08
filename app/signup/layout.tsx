@@ -1,6 +1,3 @@
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
-
 export const dynamic = "force-dynamic"
 
 export const metadata = {
@@ -14,10 +11,22 @@ export default function SignupLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
-      <Navbar />
-      {children}
-      <Footer />
-    </>
+    <div className="relative min-h-screen overflow-hidden bg-void">
+      {/* Fond vidéo identique à la page principale */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
+      >
+        <source src="/images/bgvid.mp4" type="video/mp4" />
+      </video>
+      {/* Overlay sombre pour lisibilité */}
+      <div className="pointer-events-none absolute inset-0 bg-void/60" />
+      <div className="relative z-10">
+        {children}
+      </div>
+    </div>
   )
 }

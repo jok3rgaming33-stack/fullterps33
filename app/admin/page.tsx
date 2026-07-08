@@ -32,7 +32,7 @@ export default async function AdminPage() {
     <AdminDashboard
       products={products}
       promos={promos}
-      orders={orders as any}
+      orders={orders}
       users={users}
       threads={threads}
       appSettings={appSettings}
