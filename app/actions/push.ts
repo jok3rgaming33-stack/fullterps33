@@ -16,20 +16,30 @@ export async function subscribePush(sub: {
   endpoint: string
   keys: { p256dh: string; auth: string }
 }): Promise<{ ok: boolean }> {
-  const token = await getCustomerToken()
-  if (!token) return { ok: false }
+  const [token, admin] = await Promise.all([getCustomerToken(), isAdmin()])
+
+  // Ni client connecté ni admin → refus
+  if (!token && !admin) return { ok: false }
+
+  const userToken = token ?? 'admin'
+  const role = admin ? 'admin' : 'customer'
+
   await sql`
-    insert into push_subscriptions (user_token, endpoint, p256dh, auth)
-    values (${token}, ${sub.endpoint}, ${sub.keys.p256dh}, ${sub.keys.auth})
-    on conflict (endpoint) do update set user_token = ${token}, p256dh = ${sub.keys.p256dh}, auth = ${sub.keys.auth}
+    insert into push_subscriptions (user_token, endpoint, p256dh, auth, role)
+    values (${userToken}, ${sub.endpoint}, ${sub.keys.p256dh}, ${sub.keys.auth}, ${role})
+    on conflict (endpoint) do update
+      set user_token = ${userToken},
+          p256dh     = ${sub.keys.p256dh},
+          auth       = ${sub.keys.auth},
+          role       = ${role}
   `
   return { ok: true }
 }
 
 export async function unsubscribePush(endpoint: string): Promise<{ ok: boolean }> {
-  const token = await getCustomerToken()
-  if (!token) return { ok: false }
-  await sql`delete from push_subscriptions where endpoint = ${endpoint} and user_token = ${token}`
+  const [token, admin] = await Promise.all([getCustomerToken(), isAdmin()])
+  if (!token && !admin) return { ok: false }
+  await sql`delete from push_subscriptions where endpoint = ${endpoint}`
   return { ok: true }
 }
 
