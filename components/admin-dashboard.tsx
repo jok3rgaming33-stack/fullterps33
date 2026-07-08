@@ -162,7 +162,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
             <div className="space-y-8 animate-rise-fade">
               <h2 className="font-display text-2xl tracking-wide">Aperçu</h2>
 
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
                 {[
                   { label: "Produits",  value: stats.products, icon: Package    },
                   { label: "Commandes", value: stats.orders,   icon: ShoppingBag},
@@ -213,7 +213,15 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
                         </div>
                         <div className="text-right">
                           <p className="font-display text-base">{formatPrice(o.total)}</p>
-                          <p className="font-mono text-[10px] text-ivory/40">{o.status}</p>
+                          <p className="font-mono text-[10px] text-ivory/40">
+                            {{
+                              en_attente: "En attente",
+                              confirmee:  "Confirmée",
+                              en_route:   "En route",
+                              livree:     "Livrée",
+                              annulee:    "Annulée",
+                            }[o.status] ?? o.status}
+                          </p>
                         </div>
                       </div>
                     ))

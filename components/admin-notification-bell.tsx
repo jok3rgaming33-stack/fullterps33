@@ -63,7 +63,7 @@ export function AdminNotificationBell() {
           {/* Overlay cliquable pour fermer */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-          <div className="absolute right-0 top-8 z-50 w-80 border border-white/10 bg-surface shadow-2xl">
+          <div className="absolute right-0 top-8 z-50 w-72 max-w-[calc(100vw-2rem)] border border-white/10 bg-surface shadow-2xl sm:w-80">
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <p className="font-mono text-xs uppercase tracking-widest text-ivory/60">Notifications</p>
               {unread > 0 && (
