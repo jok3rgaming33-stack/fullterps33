@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
-import { badgeStyles, type Product } from "@/lib/types"
+import { badgeStyles, findVariantForSize, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
 import { BlobMedia } from "@/components/blob-media"
@@ -19,7 +19,7 @@ export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
   const disabled = product.status === "rupture" || product.status === "bientot"
 
   const activeVariant =
-    product.variants?.find((v) => v.label === size) ??
+    findVariantForSize(product.variants ?? [], size) ??
     product.variants?.[0] ??
     null
   const displayPrice = activeVariant?.price ?? product.price

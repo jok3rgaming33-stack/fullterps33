@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { badgeStyles, type Product } from "@/lib/types"
+import { badgeStyles, findVariantForSize, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
 import { BlobMedia } from "@/components/blob-media"
@@ -13,10 +13,10 @@ export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart()
   const disabled = product.status === "rupture" || product.status === "bientot"
 
-  // Prix de la variante dont le label correspond à la taille sélectionnée
+  // Prix de la variante correspondant à la taille sélectionnée
   // Fallback : première variante, puis prix de base
   const activeVariant =
-    product.variants?.find((v) => v.label === size) ??
+    findVariantForSize(product.variants ?? [], size) ??
     product.variants?.[0] ??
     null
   const displayPrice = activeVariant?.price ?? product.price

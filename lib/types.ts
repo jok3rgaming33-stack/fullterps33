@@ -39,6 +39,33 @@ export function availableVariants(product: Product): ProductVariant[] {
   return product.variants.filter((v) => v.qty <= product.stock)
 }
 
+/**
+ * Trouve la variante correspondant à une taille sélectionnée.
+ * Stratégie : label exact → label insensible à la casse → qty converti en string
+ * (ex: size="5g" matche label="5g" ou qty=5)
+ */
+export function findVariantForSize(
+  variants: ProductVariant[],
+  size: string
+): ProductVariant | null {
+  if (!variants?.length || !size) return null
+  const s = size.trim().toLowerCase()
+
+  // 1. label exact
+  const byLabel = variants.find((v) => v.label?.trim().toLowerCase() === s)
+  if (byLabel) return byLabel
+
+  // 2. qty converti en string (ex: qty=5 → "5" matche "5" dans "5g")
+  const numeric = parseFloat(s) // "5g" → 5, "10g" → 10
+  if (!isNaN(numeric)) {
+    const byQty = variants.find((v) => v.qty === numeric)
+    if (byQty) return byQty
+  }
+
+  // 3. rien trouvé
+  return null
+}
+
 // Compute effective price after discount
 export function effectivePrice(basePrice: number, discountType: DiscountType | null, discountValue: number | null): number {
   if (!discountType || !discountValue) return basePrice
