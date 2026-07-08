@@ -92,9 +92,17 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
-        <div>
-          <h3 className="font-display text-lg leading-tight tracking-wide text-ivory">{product.name}</h3>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-ivory/40">{product.sku}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-display text-lg leading-tight tracking-wide text-ivory">{product.name}</h3>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-ivory/40">{product.sku}</p>
+          </div>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="mt-0.5 shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-violet-electric/70 underline underline-offset-2 transition hover:text-violet-electric"
+          >
+            + d&apos;infos
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-1.5">
@@ -113,23 +121,15 @@ export function ProductCard({ product }: { product: Product }) {
           ))}
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+        <div className="mt-auto flex items-center justify-between pt-2">
           <span className="font-mono text-base font-bold text-ivory">{formatPrice(displayPrice)}</span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="border border-white/15 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ivory/60 transition hover:border-white/40 hover:text-ivory"
-            >
-              + d&apos;infos
-            </button>
-            <button
-              disabled={disabled}
-              onClick={() => addToCart(product, size, displayPrice)}
-              className="clip-tag bg-violet-electric px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-ivory/30"
-            >
-              {disabled ? "Indisponible" : "Ajouter"}
-            </button>
-          </div>
+          <button
+            disabled={disabled}
+            onClick={() => addToCart(product, size, displayPrice)}
+            className="clip-tag bg-violet-electric px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-ivory/30"
+          >
+            {disabled ? "Indisponible" : "Ajouter"}
+          </button>
         </div>
       </div>
     </div>
