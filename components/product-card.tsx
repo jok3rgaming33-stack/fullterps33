@@ -12,6 +12,14 @@ export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart()
   const disabled = product.status === "rupture" || product.status === "bientot"
 
+  // Prix de la variante dont le label correspond à la taille sélectionnée
+  // Fallback : première variante, puis prix de base
+  const activeVariant =
+    product.variants?.find((v) => v.label === size) ??
+    product.variants?.[0] ??
+    null
+  const displayPrice = activeVariant?.price ?? product.price
+
   // Tous les médias : image principale + galerie additionnelle
   const allMedia = [
     ...(product.image ? [product.image] : []),
@@ -102,7 +110,7 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="mt-auto flex items-center justify-between pt-2">
-          <span className="font-mono text-base font-bold text-ivory">{formatPrice(product.price)}</span>
+          <span className="font-mono text-base font-bold text-ivory">{formatPrice(displayPrice)}</span>
           <button
             disabled={disabled}
             onClick={() => addToCart(product, size)}
