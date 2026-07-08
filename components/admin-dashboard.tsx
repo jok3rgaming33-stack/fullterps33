@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin } from "lucide-react"
+import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin, Gift } from "lucide-react"
 import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
@@ -16,7 +16,9 @@ import { AdminVerificationsPanel } from "@/components/admin-verifications"
 import { AdminMap } from "@/components/admin-map"
 import { AdminSectionsPanel } from "@/components/admin-sections-panel"
 import { AdminNotificationBell } from "@/components/admin-notification-bell"
+import { AdminLoyaltyPanel } from "@/components/admin-loyalty-panel"
 import type { AdminUser } from "@/app/actions/account"
+import type { LoyaltyTier } from "@/app/actions/loyalty"
 import type { OrderThread } from "@/app/actions/messaging"
 import type { NewsItem, CartConfig, ShopSection } from "@/app/actions/settings"
 import type { VerificationRow } from "@/app/actions/verification"
@@ -47,6 +49,12 @@ interface AdminDashboardProps {
   cartConfig?: CartConfig
   verifications?: VerificationRow[]
   sections?: ShopSection[]
+  loyaltyTiers?: LoyaltyTier[]
+  rewardCodes?: {
+    code: string; discountEuros: number; label: string
+    issuedTo: string | null; usedBy: string | null
+    active: boolean; createdAt: string
+  }[]
 }
 
 const TABS = [
@@ -58,13 +66,14 @@ const TABS = [
   { id: "map",        label: "Carte",     icon: MapPin        },
   { id: "kyc",        label: "KYC",       icon: ShieldCheck   },
   { id: "promos",     label: "Codes",     icon: Zap           },
+  { id: "loyalty",    label: "Fidélité",  icon: Gift          },
   { id: "users",      label: "Membres",   icon: Users         },
   { id: "settings",   label: "Réglages",  icon: Settings      },
 ] as const
 
 type TabId = typeof TABS[number]["id"]
 
-export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [], sections = [] }: AdminDashboardProps) {
+export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [], sections = [], loyaltyTiers = [], rewardCodes = [] }: AdminDashboardProps) {
   const [active, setActive] = useState<TabId>("overview")
   const router = useRouter()
 
@@ -271,6 +280,12 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
           )}
 
           {/* USERS / MEMBRES */}
+          {active === "loyalty" && (
+            <div className="mx-auto max-w-3xl">
+              <AdminLoyaltyPanel tiers={loyaltyTiers} rewardCodes={rewardCodes} />
+            </div>
+          )}
+
           {active === "users" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">

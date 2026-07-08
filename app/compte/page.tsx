@@ -5,6 +5,7 @@ import { LogoutButton } from "@/components/logout-button"
 import { getCurrentCustomer } from "@/app/actions/account"
 import { getThreadsForToken } from "@/app/actions/messaging"
 import { tierForPoints } from "@/lib/loyalty"
+import { getLoyaltyTiers } from "@/app/actions/loyalty"
 import { formatPrice } from "@/lib/utils"
 import { LoyaltyModal } from "@/components/loyalty-modal"
 import { PushSubscribeButton } from "@/components/push-subscribe-button"
@@ -16,9 +17,10 @@ export default async function AccountPage() {
   const customer = await getCurrentCustomer()
   if (!customer) redirect("/signup")
 
-  const [threads, tier] = await Promise.all([
+  const [threads, tier, loyaltyTiers] = await Promise.all([
     getThreadsForToken(customer.token),
     Promise.resolve(tierForPoints(customer.loyaltyPoints)),
+    getLoyaltyTiers(),
   ])
   const progress = Math.min(100, Math.round((customer.loyaltyPoints / tier.nextAt) * 100))
   const userData = { pseudo: customer.pseudo, token: customer.token }
@@ -60,7 +62,7 @@ export default async function AccountPage() {
             <p className="font-mono text-[11px] text-ivory/40">
               {Math.max(0, tier.nextAt - customer.loyaltyPoints)} pts avant le prochain palier
             </p>
-            <LoyaltyModal currentPoints={customer.loyaltyPoints} />
+            <LoyaltyModal currentPoints={customer.loyaltyPoints} tiers={loyaltyTiers} />
           </div>
         </section>
 

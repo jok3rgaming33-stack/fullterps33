@@ -1,20 +1,40 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Zap } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { X, Zap, Gift, Check, Copy } from 'lucide-react'
+import type { LoyaltyTier } from '@/app/actions/loyalty'
+import { claimLoyaltyReward } from '@/app/actions/loyalty'
 
-const TIERS = [
-  { name: 'Eclair',   min: 0,    max: 199,  perks: ['Accès boutique standard', 'Points sur chaque commande'] },
-  { name: 'Orage',    min: 200,  max: 499,  perks: ['Badge Orage', 'Priorité sur les nouveaux stocks', '+5% de points bonus'] },
-  { name: 'Tempête',  min: 500,  max: 999,  perks: ['Badge Tempête', 'Accès early aux drops', '+10% de points bonus', 'Livraison prioritaire'] },
-  { name: 'Ouragan',  min: 1000, max: null, perks: ['Badge Ouragan', 'Tarifs VIP', '+15% de points bonus', 'Support dédié', 'Invitations exclusives'] },
-]
+interface Props {
+  currentPoints: number
+  tiers: LoyaltyTier[]
+}
 
-interface Props { currentPoints?: number }
-
-export function LoyaltyModal({ currentPoints = 0 }: Props) {
+export function LoyaltyModal({ currentPoints, tiers }: Props) {
   const [open, setOpen] = useState(false)
-  const currentTier = TIERS.findLast((t) => currentPoints >= t.min) ?? TIERS[0]
+  const [claiming, setClaiming] = useState<number | null>(null)
+  const [results, setResults] = useState<Record<number, { code?: string; error?: string }>>({})
+  const [copied, setCopied] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
+
+  function handleClaim(tier: LoyaltyTier) {
+    setClaiming(tier.id)
+    startTransition(async () => {
+      const res = await claimLoyaltyReward(tier.id)
+      setResults((p) => ({ ...p, [tier.id]: res }))
+      setClaiming(null)
+    })
+  }
+
+  function handleCopy(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(code)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }
+
+  // Trier les paliers par points requis
+  const sorted = [...tiers].sort((a, b) => a.pointsRequired - b.pointsRequired)
 
   return (
     <>
@@ -32,7 +52,7 @@ export function LoyaltyModal({ currentPoints = 0 }: Props) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="clip-card w-full max-w-md border border-white/10 bg-surface p-6 space-y-4"
+            className="clip-card w-full max-w-md border border-white/10 bg-surface p-6 space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -43,41 +63,102 @@ export function LoyaltyModal({ currentPoints = 0 }: Props) {
             </div>
 
             <p className="font-mono text-[11px] text-ivory/40">
-              1 point par euro dépensé. Les paliers débloquent des avantages permanents.
+              1 point par euro dépensé. Atteins un palier pour générer un code de réduction à usage unique.
             </p>
 
             <div className="space-y-3">
-              {TIERS.map((tier) => {
-                const active = tier.name === currentTier.name
+              {sorted.length === 0 && (
+                <p className="text-center font-mono text-xs text-ivory/30 py-4">
+                  Aucun palier configuré pour le moment.
+                </p>
+              )}
+
+              {sorted.map((tier) => {
+                const eligible = currentPoints >= tier.pointsRequired
+                const result   = results[tier.id]
+                const isClaiming = claiming === tier.id
+                const progress = Math.min(100, Math.round((currentPoints / tier.pointsRequired) * 100))
+
                 return (
                   <div
-                    key={tier.name}
+                    key={tier.id}
                     className={`clip-card border p-4 transition ${
-                      active
+                      eligible
                         ? 'border-violet-electric/60 bg-violet-electric/10'
                         : 'border-white/10 bg-void/50'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`font-display text-base tracking-wide ${active ? 'text-violet-electric' : 'text-ivory/60'}`}>
-                        {tier.name}
-                        {active && <span className="ml-2 font-mono text-[10px] text-violet-electric/70">— palier actuel</span>}
+                    {/* En-tête */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`font-display text-base tracking-wide ${eligible ? 'text-violet-electric' : 'text-ivory/60'}`}>
+                        {tier.label}
                       </span>
                       <span className="font-mono text-[10px] text-ivory/40">
-                        {tier.max ? `${tier.min}–${tier.max} pts` : `${tier.min}+ pts`}
+                        {tier.pointsRequired} pts &nbsp;→&nbsp; -{tier.discountEuros}€
                       </span>
                     </div>
-                    <ul className="space-y-0.5">
-                      {tier.perks.map((p) => (
-                        <li key={p} className="flex items-center gap-2 font-mono text-[10px] text-ivory/50">
-                          <span className="text-violet-electric">▸</span> {p}
-                        </li>
-                      ))}
-                    </ul>
+
+                    {/* Barre de progression */}
+                    {!eligible && (
+                      <div className="mb-3">
+                        <div className="h-1 w-full overflow-hidden bg-void">
+                          <div
+                            className="h-full bg-violet-electric/40 transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <p className="mt-1 font-mono text-[9px] text-ivory/30">
+                          {tier.pointsRequired - currentPoints} pts manquants
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Code déjà généré */}
+                    {result?.code && (
+                      <div className="flex items-center justify-between bg-void/60 border border-violet-electric/30 px-3 py-2 mb-2">
+                        <span className="font-mono text-sm font-bold text-violet-electric tracking-wider">
+                          {result.code}
+                        </span>
+                        <button
+                          onClick={() => handleCopy(result.code!)}
+                          className="text-ivory/40 hover:text-ivory transition"
+                          title="Copier"
+                        >
+                          {copied === result.code ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Erreur */}
+                    {result?.error && !result.code && (
+                      <p className="mb-2 font-mono text-[10px] text-amber-400">{result.error}</p>
+                    )}
+
+                    {/* Bouton claim */}
+                    {eligible && !result?.code && (
+                      <button
+                        onClick={() => handleClaim(tier)}
+                        disabled={isClaiming}
+                        className="flex items-center gap-2 border border-violet-electric/40 bg-violet-electric/10 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-violet-electric hover:bg-violet-electric/20 transition disabled:opacity-50"
+                      >
+                        <Gift className="h-3.5 w-3.5" />
+                        {isClaiming ? 'Génération…' : 'Obtenir mon code'}
+                      </button>
+                    )}
+
+                    {eligible && result?.code && (
+                      <p className="font-mono text-[10px] text-emerald-400 flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Code prêt — colle-le dans le panier
+                      </p>
+                    )}
                   </div>
                 )
               })}
             </div>
+
+            <p className="font-mono text-[10px] text-ivory/20 text-center">
+              Les points sont débités dès la génération du code. Code à usage unique.
+            </p>
           </div>
         </div>
       )}

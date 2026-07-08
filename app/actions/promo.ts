@@ -17,6 +17,7 @@ export type PromoResult = {
   message: string
   discount?: number
   code?: string
+  isLoyaltyReward?: boolean
 }
 
 export async function validatePromoCode(code: string, subtotal: number): Promise<PromoResult> {
@@ -31,7 +32,14 @@ export async function validatePromoCode(code: string, subtotal: number): Promise
   }
 
   const discount = promo.type === "percent" ? Math.round((subtotal * promo.value) / 100) : promo.value
-  return { ok: true, message: "Code appliqué", discount: Math.min(discount, subtotal), code: normalized }
+  const isReward = !!promo.is_loyalty_reward
+  return {
+    ok: true,
+    message: isReward ? `Code fidélité appliqué — ${promo.value}€ de réduction` : "Code appliqué",
+    discount: Math.min(discount, subtotal),
+    code: normalized,
+    isLoyaltyReward: isReward,
+  }
 }
 
 export async function listPromoCodes(): Promise<PromoCode[]> {
