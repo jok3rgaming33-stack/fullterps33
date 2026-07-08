@@ -226,7 +226,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
           {/* SECTIONS */}
           {active === "sections" && (
             <div className="animate-rise-fade">
-              <AdminSectionsPanel initial={sections} />
+              <AdminSectionsPanel initial={sections} products={products} />
             </div>
           )}
 

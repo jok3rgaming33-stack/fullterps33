@@ -186,6 +186,28 @@ export async function updateProduct(
 }
 
 // ---------------------------------------------------------------------------
+// Section membership
+// ---------------------------------------------------------------------------
+
+/**
+ * Retire un produit d'une section en mettant section = '' (null-équivalent).
+ * Le produit reste en base mais n'apparaît plus dans aucune section visible.
+ */
+export async function removeProductFromSection(
+  productId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!await isAdmin()) return { ok: false, error: "Non autorisé" }
+    await sql`update products set section = '', updated_at = now() where id = ${productId}`
+    revalidatePath("/")
+    revalidatePath("/admin")
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Erreur" }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Delete
 // ---------------------------------------------------------------------------
 
