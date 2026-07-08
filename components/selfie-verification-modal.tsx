@@ -107,14 +107,6 @@ export function SelfieVerificationModal({ onComplete, onCancel, submitting = fal
     )
   }
 
-  const onPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (photoUrl) URL.revokeObjectURL(photoUrl)
-    setPhotoFile(file)
-    setPhotoUrl(URL.createObjectURL(file))
-  }
-
   const retakePhoto = () => {
     if (photoUrl) URL.revokeObjectURL(photoUrl)
     setPhotoFile(null)
@@ -266,10 +258,6 @@ export function SelfieVerificationModal({ onComplete, onCancel, submitting = fal
               >
                 <Camera className="h-4 w-4" /> Prendre la photo
               </button>
-              <label className="flex cursor-pointer items-center gap-2 border border-white/10 px-4 py-2 font-mono text-xs text-ivory/40 hover:text-ivory/70 transition">
-                Importer
-                <input type="file" accept="image/*" className="sr-only" onChange={onPhotoUpload} />
-              </label>
             </div>
           ) : (
             <div className="flex items-center gap-3">
