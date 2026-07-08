@@ -4,9 +4,10 @@ import { Navbar } from "@/components/navbar"
 import { Hero } from "@/components/hero"
 import { ProductSection } from "@/components/product-section"
 import { LightningDivider } from "@/components/lightning-divider"
-import { CartDrawer } from "@/components/cart-drawer"
 import { Footer } from "@/components/footer"
 import { getShopSections } from "@/app/actions/settings"
+import { getCurrentCustomer } from "@/app/actions/account"
+import { CheckoutCart } from "@/components/checkout-cart"
 
 export const dynamic = "force-dynamic"
 
@@ -14,7 +15,12 @@ export default async function HomePage() {
   const token = await getCustomerToken()
   if (!token) redirect("/signup")
 
-  const sections = await getShopSections()
+  const [sections, customer] = await Promise.all([
+    getShopSections(),
+    getCurrentCustomer(),
+  ])
+
+  const userData = customer ? { pseudo: customer.pseudo, token: customer.token } : null
 
   return (
     <>
@@ -29,7 +35,7 @@ export default async function HomePage() {
         ))}
       </main>
       <Footer />
-      <CartDrawer />
+      <CheckoutCart userData={userData} />
     </>
   )
 }
