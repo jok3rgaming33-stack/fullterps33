@@ -134,7 +134,7 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-display text-sm text-ivory">
-                      {t.summary ?? t.orderId ? `Commande #${t.orderId}` : "Demande générale"}
+                      {t.summary ?? (t.orderId ? `Commande #${t.orderId}` : `Commande FT-${String(t.id).padStart(4, "0")}`)}
                     </p>
                     <p className="mt-0.5 font-mono text-[10px] text-ivory/40">
                       {fmtDate(t.createdAt)}
@@ -218,7 +218,7 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
       <div className="flex items-center justify-between border border-white/10 bg-surface/40 px-4 py-3">
         <div>
           <p className="font-display text-sm text-ivory">
-            {selected?.summary ?? (selected?.orderId ? `Commande #${selected.orderId}` : "Demande générale")}
+            {selected?.summary ?? (selected?.orderId ? `Commande #${selected.orderId}` : `Commande FT-${String(selected?.id).padStart(4, "0")}`)}
           </p>
           {selected?.createdAt && (
             <p className="font-mono text-[10px] text-ivory/40">{fmtDate(selected.createdAt)}</p>
