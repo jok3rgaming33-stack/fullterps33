@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Zap, Gift, Check, Copy } from 'lucide-react'
 import type { LoyaltyTier } from '@/app/actions/loyalty'
 import { claimLoyaltyReward } from '@/app/actions/loyalty'
@@ -12,10 +13,13 @@ interface Props {
 
 export function LoyaltyModal({ currentPoints, tiers }: Props) {
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [claiming, setClaiming] = useState<number | null>(null)
   const [results, setResults] = useState<Record<number, { code?: string; error?: string }>>({})
   const [copied, setCopied] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+
+  useEffect(() => { setMounted(true) }, [])
 
   function handleClaim(tier: LoyaltyTier) {
     setClaiming(tier.id)
@@ -46,13 +50,14 @@ export function LoyaltyModal({ currentPoints, tiers }: Props) {
         Voir les paliers
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-void/80 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[9999] overflow-y-auto bg-black/80 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
+          <div className="flex min-h-full items-center justify-center p-4">
           <div
-            className="clip-card w-full max-w-md border border-white/10 bg-surface p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            className="clip-card w-full max-w-md border border-white/10 bg-surface p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -160,7 +165,9 @@ export function LoyaltyModal({ currentPoints, tiers }: Props) {
               Les points sont débités dès la génération du code. Code à usage unique.
             </p>
           </div>
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   )

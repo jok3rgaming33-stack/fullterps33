@@ -1,3 +1,4 @@
+// v0: touched to force dev server restart — 2026-07-08
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
