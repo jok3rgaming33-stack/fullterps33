@@ -1,9 +1,10 @@
 "use server"
 
-import { sql } from "@/lib/db"
+import { sql } from '@/lib/db'
 import { getCustomerToken, isAdmin } from "@/lib/auth"
 import { pointsForAmount } from "@/lib/loyalty"
 import { validatePromoCode } from "@/app/actions/promo"
+import { getVerificationStatus } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
 
 export type OrderItemInput = {
@@ -18,6 +19,12 @@ export type PlaceOrderResult = { ok: boolean; message: string; orderId?: number 
 
 export async function placeOrder(items: OrderItemInput[], promoCode?: string): Promise<PlaceOrderResult> {
   if (items.length === 0) return { ok: false, message: "Le panier est vide" }
+
+  // Vérifier KYC
+  const verification = await getVerificationStatus()
+  if (!verification || verification.status !== 'validated') {
+    return { ok: false, message: "Vérification d'identité requise pour finaliser la commande" }
+  }
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
   let discount = 0
@@ -59,7 +66,7 @@ export async function listMyOrders() {
   `
   return rows.map((r: any) => ({
     id: r.id,
-    items: r.items,
+    items: typeof r.items === "string" ? JSON.parse(r.items) : (r.items ?? []),
     total: r.total,
     status: r.status,
     createdAt: r.created_at,
@@ -72,7 +79,7 @@ export async function listAllOrders() {
   return rows.map((r: any) => ({
     id: r.id,
     userToken: r.user_token,
-    items: r.items,
+    items: typeof r.items === "string" ? JSON.parse(r.items) : (r.items ?? []),
     subtotal: r.subtotal,
     discount: r.discount,
     total: r.total,
@@ -92,4 +99,12 @@ export async function updateOrderStatus(orderId: number, status: string) {
   await sql`update orders set status = ${status} where id = ${orderId}`
   revalidatePath("/admin")
   revalidatePath("/compte")
+}
+
+export async function deleteOrder(orderId: number): Promise<{ ok: boolean }> {
+  if (!await isAdmin()) return { ok: false }
+  await sql`delete from orders where id = ${orderId}`
+  revalidatePath("/admin")
+  revalidatePath("/compte")
+  return { ok: true }
 }

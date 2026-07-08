@@ -2,10 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Navbar } from '@/components/navbar'
-import { Footer } from '@/components/footer'
 import { registerUser, loginWithToken } from '@/app/actions/auth'
 import { loginAdmin } from '@/app/actions/admin'
+import { HowItWorksModal } from '@/components/how-it-works-modal'
 
 type Tab = 'create' | 'login'
 
@@ -64,7 +63,6 @@ export default function SignupPage() {
 
   return (
     <>
-      <Navbar />
       <main className="grain relative min-h-[85vh] flex items-center justify-center px-4 py-16">
         {/* Éclairs décoratifs */}
         <svg className="pointer-events-none absolute left-8 top-20 opacity-10" width="40" height="60" viewBox="0 0 46 64" fill="none">
@@ -220,8 +218,10 @@ export default function SignupPage() {
             </div>
           )}
         </div>
+          <div className="mt-4 flex justify-center">
+            <HowItWorksModal />
+          </div>
       </main>
-      <Footer />
     </>
   )
 }

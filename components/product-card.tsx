@@ -1,16 +1,38 @@
 "use client"
 
 import { useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { badgeStyles, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
+import { BlobMedia } from "@/components/blob-media"
+import { ProductModal } from "@/components/product-modal"
 
 export function ProductCard({ product }: { product: Product }) {
   const [size, setSize] = useState(product.sizes[0])
   const { addToCart } = useCart()
   const disabled = product.status === "rupture" || product.status === "bientot"
 
+  // Prix de la variante dont le label correspond à la taille sélectionnée
+  // Fallback : première variante, puis prix de base
+  const activeVariant =
+    product.variants?.find((v) => v.label === size) ??
+    product.variants?.[0] ??
+    null
+  const displayPrice = activeVariant?.price ?? product.price
+
+  // Tous les médias : image principale + galerie additionnelle
+  const allMedia = [
+    ...(product.image ? [product.image] : []),
+    ...(product.media ?? []),
+  ]
+  const [mediaIndex, setMediaIndex] = useState(0)
+  const currentMedia = allMedia[mediaIndex] ?? null
+  const [modalOpen, setModalOpen] = useState(false)
+
   return (
+    <>
+    <ProductModal product={product} isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     <div className="clip-card group flex flex-col border border-white/10 bg-surface transition hover:border-violet-electric/50 hover:shadow-glow-sm">
       <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-br from-surface2 to-void">
         {product.badge && (
@@ -20,19 +42,67 @@ export function ProductCard({ product }: { product: Product }) {
             {product.badge}
           </span>
         )}
-        {/* Placeholder garment silhouette */}
-        <svg viewBox="0 0 100 100" className="h-24 w-24 text-violet-electric/30 transition group-hover:text-violet-electric/50">
-          <path
-            d="M35 15 L50 8 L65 15 L78 25 L70 35 L65 30 L65 90 L35 90 L35 30 L30 35 L22 25 Z"
-            fill="currentColor"
+
+        {currentMedia ? (
+          <BlobMedia
+            src={currentMedia}
+            alt={product.name}
+            className="h-full w-full object-cover transition group-hover:scale-105"
           />
-        </svg>
+        ) : (
+          /* Placeholder quand aucun média */
+          <svg viewBox="0 0 100 100" className="h-24 w-24 text-violet-electric/30 transition group-hover:text-violet-electric/50">
+            <path
+              d="M35 15 L50 8 L65 15 L78 25 L70 35 L65 30 L65 90 L35 90 L35 30 L30 35 L22 25 Z"
+              fill="currentColor"
+            />
+          </svg>
+        )}
+
+        {/* Navigation carrousel si plusieurs médias */}
+        {allMedia.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMediaIndex((i) => (i - 1 + allMedia.length) % allMedia.length) }}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 rounded-full bg-void/70 p-0.5 text-ivory opacity-0 transition group-hover:opacity-100"
+              aria-label="Précédent"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMediaIndex((i) => (i + 1) % allMedia.length) }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-void/70 p-0.5 text-ivory opacity-0 transition group-hover:opacity-100"
+              aria-label="Suivant"
+            >
+              <ChevronRight size={16} />
+            </button>
+            {/* Indicateurs */}
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+              {allMedia.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setMediaIndex(idx) }}
+                  className={`h-1 rounded-full transition-all ${idx === mediaIndex ? "w-4 bg-violet-electric" : "w-1 bg-white/40"}`}
+                  aria-label={`Média ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
-        <div>
-          <h3 className="font-display text-lg leading-tight tracking-wide text-ivory">{product.name}</h3>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-ivory/40">{product.sku}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-display text-lg leading-tight tracking-wide text-ivory">{product.name}</h3>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-ivory/40">{product.sku}</p>
+          </div>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="mt-0.5 shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-violet-electric/70 underline underline-offset-2 transition hover:text-violet-electric"
+          >
+            + d&apos;infos
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-1.5">
@@ -52,10 +122,10 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="mt-auto flex items-center justify-between pt-2">
-          <span className="font-mono text-base font-bold text-ivory">{formatPrice(product.price)}</span>
+          <span className="font-mono text-base font-bold text-ivory">{formatPrice(displayPrice)}</span>
           <button
             disabled={disabled}
-            onClick={() => addToCart(product, size)}
+            onClick={() => addToCart(product, size, displayPrice)}
             className="clip-tag bg-violet-electric px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-ivory/30"
           >
             {disabled ? "Indisponible" : "Ajouter"}
@@ -63,5 +133,6 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
     </div>
+    </>
   )
 }

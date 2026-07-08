@@ -23,7 +23,7 @@ export function Hero() {
       {/* Conteneur unique du contenu aligné proprement à gauche */}
       <div className="relative z-20 mx-auto w-full max-w-[1200px] px-6 py-12 md:py-24 flex flex-col justify-center">
         
-        {/* Logo principal réactif (s'adapte automatiquement sur mobile et desktop) */}
+        {/* Logo principal réactif */}
         <div className="relative h-[70px] w-[240px] sm:w-[320px] md:h-[130px] md:w-[480px] mb-4 md:mb-6">
           <Image 
             src="/images/hero-logo.png" 
@@ -43,7 +43,7 @@ export function Hero() {
             On te propose uniquement des produits de qualité aux meilleurs prix. Livraison rapide, meet-up.
           </p>
 
-          {/* Boutons d'action mis à jour avec styles et filtres de flou modernes */}
+          {/* Boutons d'action mis à jour */}
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
               href="#capsule"

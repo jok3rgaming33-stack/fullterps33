@@ -11,6 +11,15 @@ import type { BadgeKey } from "@/lib/badges"
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Parse une valeur Neon qui peut être un tableau JS, une string JSON, ou null */
+function parseArray<T>(v: unknown): T[] {
+  if (Array.isArray(v)) return v as T[]
+  if (typeof v === "string") {
+    try { const p = JSON.parse(v); return Array.isArray(p) ? p : [] } catch { return [] }
+  }
+  return []
+}
+
 function rowToProduct(row: Record<string, unknown>): Product {
   return {
     id: row.id as string,
@@ -20,13 +29,13 @@ function rowToProduct(row: Record<string, unknown>): Product {
     category: row.category as string,
     status: row.status as Product["status"],
     badge: (row.badge as string | null) ?? null,
-    badges: ((row.badges as string[]) ?? []) as BadgeKey[],
-    sizes: (row.sizes as string[]) ?? [],
+    badges: parseArray<BadgeKey>(row.badges),
+    sizes: parseArray<string>(row.sizes),
     sku: row.sku as string,
     stock: (row.stock as number) ?? 0,
     image: (row.image as string | null) ?? null,
-    media: (row.media as string[]) ?? [],
-    variants: (row.variants as ProductVariant[]) ?? [],
+    media: parseArray<string>(row.media),
+    variants: parseArray<ProductVariant>(row.variants),
     discount_type: (row.discount_type as DiscountType | null) ?? null,
     discount_value: (row.discount_value as number | null) ?? null,
     sort_order: (row.sort_order as number) ?? 0,
@@ -51,9 +60,9 @@ function genId(name: string): string {
 // List / Get
 // ---------------------------------------------------------------------------
 
-export async function listProducts(category?: string): Promise<Product[]> {
-  const rows = category
-    ? await sql`select * from products where category = ${category} order by sort_order asc, created_at desc`
+export async function listProducts(section?: string): Promise<Product[]> {
+  const rows = section
+    ? await sql`select * from products where section = ${section} order by sort_order asc, created_at desc`
     : await sql`select * from products order by sort_order asc, created_at desc`
   return (rows as Record<string, unknown>[]).map(rowToProduct)
 }

@@ -2,10 +2,15 @@ import { redirect } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { LogoutButton } from "@/components/logout-button"
+import { AccountOrders } from "@/components/account-orders"
 import { getCurrentCustomer } from "@/app/actions/account"
 import { listMyOrders } from "@/app/actions/orders"
 import { tierForPoints } from "@/lib/loyalty"
 import { formatPrice } from "@/lib/utils"
+import { LoyaltyModal } from "@/components/loyalty-modal"
+import { PushSubscribeButton } from "@/components/push-subscribe-button"
+
+export const dynamic = "force-dynamic"
 
 export default async function AccountPage() {
   const customer = await getCurrentCustomer()
@@ -29,7 +34,7 @@ export default async function AccountPage() {
           <LogoutButton />
         </div>
 
-        {/* Loyalty */}
+        {/* Fidélité */}
         <section className="clip-card mt-10 border border-white/10 bg-surface p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -48,44 +53,23 @@ export default async function AccountPage() {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="mt-2 font-mono text-[11px] text-ivory/40">
-            {Math.max(0, tier.nextAt - customer.loyaltyPoints)} points avant le prochain palier ·
-            1 point gagné par euro dépensé
-          </p>
+          <div className="mt-3 flex items-center justify-between">
+            <p className="font-mono text-[11px] text-ivory/40">
+              {Math.max(0, tier.nextAt - customer.loyaltyPoints)} pts avant le prochain palier
+            </p>
+            <LoyaltyModal currentPoints={customer.loyaltyPoints} />
+          </div>
         </section>
 
-        {/* Orders */}
+        {/* Notifications */}
+        <div className="mt-4 flex justify-end">
+          <PushSubscribeButton />
+        </div>
+
+        {/* Commandes */}
         <section className="mt-10">
           <h2 className="mb-4 font-display text-2xl tracking-wide">Mes commandes</h2>
-          {orders.length === 0 ? (
-            <p className="font-mono text-sm text-ivory/40">Aucune commande pour l'instant.</p>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {orders.map((o) => (
-                <li
-                  key={o.id}
-                  className="flex items-center justify-between border border-white/10 bg-surface px-5 py-4"
-                >
-                  <div>
-                    <p className="font-mono text-sm text-ivory">Commande #{o.id}</p>
-                    <p className="font-mono text-[11px] text-ivory/40">
-                      {new Date(o.createdAt).toLocaleDateString("fr-FR", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <span className="font-mono text-sm font-bold">{formatPrice(o.total)}</span>
-                    <span className="clip-tag bg-violet-deep px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-ivory">
-                      {o.status}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <AccountOrders orders={orders} />
         </section>
       </main>
       <Footer />

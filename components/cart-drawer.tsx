@@ -109,7 +109,7 @@ export function CartDrawer() {
                         </button>
                       </div>
                       <span className="font-mono text-sm font-bold">
-                        {formatPrice(line.product.price * line.quantity)}
+                        {formatPrice(line.price * line.quantity)}
                       </span>
                     </div>
                   </div>

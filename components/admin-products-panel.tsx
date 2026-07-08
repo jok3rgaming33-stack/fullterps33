@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useTransition } from "react"
+
 import {
   createProduct,
   updateProduct,
@@ -12,8 +13,10 @@ import type { Product, ProductVariant } from "@/lib/types"
 import type { BadgeKey } from "@/lib/badges"
 import {
   Plus, Trash2, Pencil, X, Upload, Loader2,
-  Image as ImageIcon, Video, GripVertical,
+  Image as ImageIcon, GripVertical,
 } from "lucide-react"
+import { BlobMedia } from "@/components/blob-media"
+import type { ShopSection } from "@/app/actions/settings"
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -25,8 +28,6 @@ const STATUSES: { value: Product["status"]; label: string }[] = [
   { value: "bientot", label: "Bientôt dispo" },
   { value: "reappro", label: "En réappro" },
 ]
-
-const SECTIONS = ["general", "capsule", "nouveautes", "exclusif"]
 
 const DISCOUNT_TYPES = [
   { value: "", label: "Aucune réduction" },
@@ -46,16 +47,50 @@ function euros(c: number) {
   return (c / 100).toFixed(2)
 }
 
-async function uploadFile(file: File): Promise<string> {
-  const fd = new FormData()
-  fd.append("file", file)
-  const res = await fetch("/api/upload", { method: "POST", body: fd })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as { error?: string }).error || "Erreur upload")
-  }
-  const { url } = await res.json() as { url: string }
-  return url
+const ACCEPTED = "image/*,video/mp4,video/webm,video/quicktime,video/mov"
+
+/** Upload via XHR pour avoir la vraie progression côté envoi */
+function uploadFile(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData()
+    fd.append("file", file)
+
+    const xhr = new XMLHttpRequest()
+    xhr.open("POST", "/api/upload")
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onProgress?.(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as { url?: string; error?: string }
+          if (data.url) resolve(data.url)
+          else reject(new Error(data.error ?? "Réponse invalide"))
+        } catch {
+          reject(new Error("Réponse non-JSON"))
+        }
+      } else {
+        try {
+          const data = JSON.parse(xhr.responseText) as { error?: string }
+          reject(new Error(data.error ?? `Erreur ${xhr.status}`))
+        } catch {
+          reject(new Error(`Erreur ${xhr.status}`))
+        }
+      }
+    }
+
+    xhr.onerror = () => reject(new Error("Erreur réseau"))
+    xhr.onabort = () => reject(new Error("Upload annulé"))
+
+    xhr.send(fd)
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -73,57 +108,72 @@ function MediaUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [error, setError] = useState("")
-  const isVideo = value?.includes(".mp4") || value?.includes(".webm")
-
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setError("")
+    setProgress(0)
     setUploading(true)
     try {
-      const url = await uploadFile(file)
+      const url = await uploadFile(file, setProgress)
       onChange(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur upload")
     } finally {
       setUploading(false)
+      if (inputRef.current) inputRef.current.value = ""
     }
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <span className="label-admin">{label}</span>
       <div
-        className="relative flex items-center justify-center border border-dashed border-zinc-700 rounded-lg h-28 cursor-pointer bg-zinc-900/50 hover:border-violet-500 transition-colors overflow-hidden"
-        onClick={() => inputRef.current?.click()}
+        className="relative flex items-center justify-center border border-dashed border-zinc-700 rounded-lg h-32 cursor-pointer bg-zinc-900/50 hover:border-violet-500 transition-colors overflow-hidden"
+        onClick={() => !uploading && inputRef.current?.click()}
       >
         {value ? (
-          isVideo
-            ? <video src={value} className="h-full w-full object-cover" muted playsInline />
-            : <img src={value} alt="" className="h-full w-full object-cover" />
+          <BlobMedia src={value} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex flex-col items-center gap-1 text-zinc-600">
-            <ImageIcon size={22} />
-            <span className="text-xs">Cliquer pour uploader</span>
+          <div className="flex flex-col items-center gap-1.5 text-zinc-600">
+            <ImageIcon size={24} />
+            <span className="text-xs">Image ou vidéo</span>
           </div>
         )}
+
         {uploading && (
-          <div className="absolute inset-0 bg-zinc-900/70 flex items-center justify-center">
-            <Loader2 size={20} className="animate-spin text-violet-400" />
+          <div className="absolute inset-0 bg-zinc-900/80 flex flex-col items-center justify-center gap-2">
+            <Loader2 size={18} className="animate-spin text-violet-400" />
+            <div className="w-3/4 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-violet-500 rounded-full transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="font-mono text-[10px] text-zinc-400">{progress}%</span>
           </div>
         )}
+
         {value && !uploading && (
           <button
             type="button"
-            className="absolute top-1 right-1 bg-zinc-900/80 rounded p-0.5 text-zinc-400 hover:text-red-400"
+            className="absolute top-1.5 right-1.5 bg-zinc-900/90 rounded p-1 text-zinc-400 hover:text-red-400 transition-colors"
             onClick={(e) => { e.stopPropagation(); onChange("") }}
+            aria-label="Supprimer"
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         )}
       </div>
-      <input ref={inputRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleFile} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED}
+        className="hidden"
+        onChange={handleFile}
+      />
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   )
@@ -133,58 +183,109 @@ function MediaUploader({
 // MediaGallery — médias additionnels multiples
 // ---------------------------------------------------------------------------
 
+type UploadingItem = { name: string; progress: number }
+
 function MediaGallery({ media, onChange }: { media: string[]; onChange: (urls: string[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
+  const [uploading, setUploading] = useState<UploadingItem[]>([])
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
-    setUploading(true)
-    try {
-      const urls = await Promise.all(files.map(uploadFile))
-      onChange([...media, ...urls])
-    } finally {
-      setUploading(false)
-      if (inputRef.current) inputRef.current.value = ""
-    }
+
+    // Initialise l'état de progression pour chaque fichier
+    setUploading(files.map((f) => ({ name: f.name, progress: 0 })))
+
+    const results = await Promise.allSettled(
+      files.map((file, idx) =>
+        uploadFile(file, (pct) =>
+          setUploading((prev) =>
+            prev.map((item, i) => (i === idx ? { ...item, progress: pct } : item))
+          )
+        )
+      )
+    )
+
+    const newUrls = results
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+      .map((r) => r.value)
+
+    onChange([...media, ...newUrls])
+    setUploading([])
+    if (inputRef.current) inputRef.current.value = ""
   }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="label-admin">Médias additionnels ({media.length})</span>
+        <span className="label-admin">
+          Médias additionnels
+          {media.length > 0 && (
+            <span className="ml-1.5 text-zinc-500">({media.length})</span>
+          )}
+        </span>
         <button
           type="button"
-          className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300"
+          className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors"
           onClick={() => inputRef.current?.click()}
+          disabled={uploading.length > 0}
         >
-          {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+          {uploading.length > 0 ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Upload size={12} />
+          )}
           Ajouter
         </button>
       </div>
-      {media.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {media.map((url, i) => {
-            const isVideo = url.includes(".mp4") || url.includes(".webm")
-            return (
-              <div key={i} className="relative w-16 h-16 rounded overflow-hidden border border-zinc-700">
-                {isVideo
-                  ? <video src={url} className="w-full h-full object-cover" muted />
-                  : <img src={url} alt="" className="w-full h-full object-cover" />}
-                <button
-                  type="button"
-                  className="absolute top-0.5 right-0.5 bg-zinc-900/80 rounded p-0.5 text-zinc-400 hover:text-red-400"
-                  onClick={() => onChange(media.filter((_, idx) => idx !== i))}
-                >
-                  <X size={10} />
-                </button>
+
+      {/* Fichiers en cours d'upload */}
+      {uploading.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {uploading.map((item, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-zinc-500 truncate flex-1">{item.name}</span>
+              <div className="w-24 h-1.5 bg-zinc-700 rounded-full overflow-hidden shrink-0">
+                <div
+                  className="h-full bg-violet-500 rounded-full transition-all duration-200"
+                  style={{ width: `${item.progress}%` }}
+                />
               </div>
-            )
-          })}
+              <span className="font-mono text-[10px] text-zinc-500 w-8 text-right shrink-0">
+                {item.progress}%
+              </span>
+            </div>
+          ))}
         </div>
       )}
-      <input ref={inputRef} type="file" accept="image/*,video/mp4,video/webm" multiple className="hidden" onChange={handleFiles} />
+
+      {/* Grille des médias existants */}
+      {media.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {media.map((url, i) => (
+            <div key={i} className="relative w-16 h-16 rounded overflow-hidden border border-zinc-700 group">
+              <BlobMedia src={url} alt="" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                className="absolute inset-0 flex items-center justify-center bg-zinc-900/0 group-hover:bg-zinc-900/60 transition-colors"
+                onClick={() => onChange(media.filter((_, idx) => idx !== i))}
+                aria-label="Supprimer ce média"
+              >
+                <X size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED}
+        multiple
+        className="hidden"
+        onChange={handleFiles}
+      />
     </div>
   )
 }
@@ -194,17 +295,46 @@ function MediaGallery({ media, onChange }: { media: string[]; onChange: (urls: s
 // ---------------------------------------------------------------------------
 
 function VariantsEditor({ variants, onChange }: { variants: ProductVariant[]; onChange: (v: ProductVariant[]) => void }) {
+  // États string locaux pour les champs prix — un par variante
+  const [priceInputs, setPriceInputs] = useState<string[]>(
+    () => variants.map((v) => (v.price ? String(Math.round(v.price / 100)) : ""))
+  )
+
   function add() {
-    onChange([...variants, { qty: 0, price: 0, label: "" }])
+    const next = [...variants, { qty: 0, price: 0, label: "" }]
+    onChange(next)
+    setPriceInputs((p) => [...p, ""])
   }
+
   function remove(i: number) {
-    onChange(variants.filter((_, idx) => idx !== i))
+    const next = variants.filter((_, idx) => idx !== i)
+    onChange(next)
+    setPriceInputs((p) => p.filter((_, idx) => idx !== i))
   }
-  function update(i: number, field: keyof ProductVariant, raw: string) {
+
+  function updateQty(i: number, raw: string) {
     const next = [...variants]
-    if (field === "price") next[i] = { ...next[i], price: cents(raw) }
-    else if (field === "qty") next[i] = { ...next[i], qty: parseInt(raw) || 0 }
-    else next[i] = { ...next[i], label: raw }
+    next[i] = { ...next[i], qty: parseInt(raw) || 0 }
+    onChange(next)
+  }
+
+  function updateLabel(i: number, raw: string) {
+    const next = [...variants]
+    next[i] = { ...next[i], label: raw }
+    onChange(next)
+  }
+
+  function updatePriceInput(i: number, raw: string) {
+    setPriceInputs((p) => p.map((v, idx) => (idx === i ? raw : v)))
+  }
+
+  function commitPrice(i: number, raw: string) {
+    const n = parseInt(raw.replace(",", ".").replace(".", ""))
+    const euros = isNaN(n) ? 0 : Math.abs(n)
+    const formatted = isNaN(n) ? "" : String(euros)
+    setPriceInputs((p) => p.map((v, idx) => (idx === i ? formatted : v)))
+    const next = [...variants]
+    next[i] = { ...next[i], price: euros * 100 }
     onChange(next)
   }
 
@@ -222,24 +352,27 @@ function VariantsEditor({ variants, onChange }: { variants: ProductVariant[]; on
       {variants.map((v, i) => (
         <div key={i} className="grid grid-cols-[80px_90px_1fr_auto] gap-2 items-center">
           <input
-            type="number" min="0"
+            type="text"
+            inputMode="numeric"
             placeholder="Qté (g)"
             value={v.qty || ""}
-            onChange={(e) => update(i, "qty", e.target.value)}
+            onChange={(e) => updateQty(i, e.target.value)}
             className="input-admin"
           />
           <input
-            type="number" min="0" step="0.01"
+            type="text"
+            inputMode="decimal"
             placeholder="Prix (€)"
-            value={v.price ? euros(v.price) : ""}
-            onChange={(e) => update(i, "price", e.target.value)}
+            value={priceInputs[i] ?? ""}
+            onChange={(e) => updatePriceInput(i, e.target.value)}
+            onBlur={(e) => commitPrice(i, e.target.value)}
             className="input-admin"
           />
           <input
             type="text"
             placeholder="Label (ex: 5g)"
             value={v.label ?? ""}
-            onChange={(e) => update(i, "label", e.target.value)}
+            onChange={(e) => updateLabel(i, e.target.value)}
             className="input-admin"
           />
           <button type="button" onClick={() => remove(i)} className="text-red-500 hover:text-red-400 p-1">
@@ -262,19 +395,20 @@ const EMPTY: ProductInput = {
   discount_value: null, sort_order: 0, section: "general",
 }
 
-function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave: () => void; onCancel: () => void }) {
+function ProductForm({ initial, onSave, onCancel, sections = [] }: { initial?: Product; onSave: () => void; onCancel: () => void; sections?: ShopSection[] }) {
   const [form, setForm] = useState<ProductInput>(
     initial ? {
       name: initial.name, description: initial.description ?? "",
       price: initial.price, category: initial.category, status: initial.status,
-      badges: initial.badges, sizes: initial.sizes, sku: initial.sku,
-      stock: initial.stock, image: initial.image ?? "", media: initial.media,
-      variants: initial.variants, discount_type: initial.discount_type,
+      badges: initial.badges ?? [], sizes: initial.sizes ?? [], sku: initial.sku,
+      stock: initial.stock, image: initial.image ?? "", media: initial.media ?? [],
+      variants: initial.variants ?? [], discount_type: initial.discount_type,
       discount_value: initial.discount_value, sort_order: initial.sort_order,
       section: initial.section,
     } : EMPTY
   )
-  const [sizesInput, setSizesInput] = useState(initial?.sizes.join(", ") ?? "")
+  const [discountInput, setDiscountInput] = useState(initial?.discount_value != null ? String(initial.discount_value) : "")
+  const [sizesInput, setSizesInput] = useState(initial?.sizes?.join(", ") ?? "")
   const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
 
@@ -292,6 +426,9 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
     setError("")
     const payload: ProductInput = {
       ...form,
+      // prix de base = première variante, sinon 0
+      price: form.variants?.[0]?.price ?? 0,
+      discount_value: discountInput ? parseInt(discountInput) || null : null,
       sizes: sizesInput.split(",").map((s) => s.trim()).filter(Boolean),
       image: form.image || null,
     }
@@ -327,14 +464,8 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
           onChange={(e) => set("description", e.target.value)} placeholder="Description du produit…" />
       </div>
 
-      {/* Prix / Stock / Statut / Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="label-admin">Prix de base (€)</label>
-          <input type="number" step="0.01" min="0" className="input-admin"
-            value={form.price ? euros(form.price) : ""}
-            onChange={(e) => set("price", cents(e.target.value))} placeholder="0.00" />
-        </div>
+      {/* Stock / Statut / Section */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="flex flex-col gap-1">
           <label className="label-admin">Stock</label>
           <input type="number" min="0" className="input-admin"
@@ -350,9 +481,12 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
         </div>
         <div className="flex flex-col gap-1">
           <label className="label-admin">Section</label>
-          <select className="input-admin" value={form.section ?? "general"}
+          <select className="input-admin" value={form.section ?? ""}
             onChange={(e) => set("section", e.target.value)}>
-            {SECTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            <option value="">— Choisir —</option>
+            {sections.map((s) => (
+              <option key={s.slug} value={s.slug}>{s.title} ({s.slug})</option>
+            ))}
           </select>
         </div>
       </div>
@@ -369,9 +503,18 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
         {form.discount_type && (
           <div className="flex flex-col gap-1">
             <label className="label-admin">Valeur {form.discount_type === "percent" ? "(%)" : "(€)"}</label>
-            <input type="number" min="0" className="input-admin"
-              value={form.discount_value ?? ""}
-              onChange={(e) => set("discount_value", parseFloat(e.target.value) || null)} />
+            <input
+              type="text"
+              inputMode="decimal"
+              className="input-admin"
+              value={discountInput}
+              onChange={(e) => setDiscountInput(e.target.value)}
+              onBlur={(e) => {
+                const n = parseInt(e.target.value)
+                if (!isNaN(n)) setDiscountInput(String(Math.abs(n)))
+              }}
+              placeholder="0"
+            />
           </div>
         )}
       </div>
@@ -507,7 +650,7 @@ function ProductRow({ product, onEdit, onDeleted }: { product: Product; onEdit: 
 // AdminProductsPanel — composant principal
 // ---------------------------------------------------------------------------
 
-export function AdminProductsPanel({ products: initial }: { products: Product[] }) {
+export function AdminProductsPanel({ products: initial, sections = [] }: { products: Product[]; sections?: ShopSection[] }) {
   const [products] = useState<Product[]>(initial)
   const [mode, setMode] = useState<"list" | "create" | "edit">("list")
   const [editing, setEditing] = useState<Product | undefined>()
@@ -552,7 +695,7 @@ export function AdminProductsPanel({ products: initial }: { products: Product[] 
           </h2>
         </div>
         <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5">
-          <ProductForm initial={editing} onSave={handleSaved}
+          <ProductForm initial={editing} onSave={handleSaved} sections={sections}
             onCancel={() => { setMode("list"); setEditing(undefined) }} />
         </div>
       </div>

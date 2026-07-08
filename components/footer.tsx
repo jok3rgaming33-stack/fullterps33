@@ -1,15 +1,29 @@
 import Link from "next/link"
+import { getSetting } from "@/app/actions/settings"
 
-export function Footer() {
+export async function Footer() {
+  const [tagline, copyright, siteName] = await Promise.all([
+    getSetting("footer_tagline"),
+    getSetting("footer_copyright"),
+    getSetting("site_name"),
+  ])
+
+  const footerTagline   = (tagline   as string | null) ?? "Que de la foudre la famille."
+  const footerCopyright = (copyright as string | null) ?? `© ${new Date().getFullYear()} HEISENWEB — Tous droits réservés`
+  const name            = (siteName  as string | null) ?? "FULLTERPS33"
+  const [namePart, suffix] = name.length > 2
+    ? [name.slice(0, -2), name.slice(-2)]
+    : [name, ""]
+
   return (
     <footer className="border-t border-white/10 bg-void">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-12 md:flex-row md:justify-between">
         <div>
           <span className="font-display text-lg tracking-wide">
-            FULLTERPS<span className="text-violet-electric">33</span>
+            {namePart}<span className="text-violet-electric">{suffix}</span>
           </span>
           <p className="mt-2 max-w-xs font-mono text-xs text-ivory/40">
-            Que de la foudre la famille.
+            {footerTagline}
           </p>
         </div>
 
@@ -26,7 +40,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/5 px-4 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-ivory/30">
-        © {new Date().getFullYear()} HEISENWEB — Tous droits réservés
+        {footerCopyright}
       </div>
     </footer>
   )

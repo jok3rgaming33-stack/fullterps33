@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag } from "lucide-react"
+import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin } from "lucide-react"
 import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
@@ -10,7 +10,15 @@ import { AdminProductsPanel } from "@/components/admin-products-panel"
 import { AdminOrdersPanel } from "@/components/admin-orders-panel"
 import { AdminPromosPanel } from "@/components/admin-promos-panel"
 import { AdminUsersPanel } from "@/components/admin-users"
+import { AdminMessagingPanel } from "@/components/admin-messaging-panel"
+import { AdminSettingsPanel } from "@/components/admin-settings-panel"
+import { AdminVerificationsPanel } from "@/components/admin-verifications"
+import { AdminMap } from "@/components/admin-map"
+import { AdminSectionsPanel } from "@/components/admin-sections-panel"
 import type { AdminUser } from "@/app/actions/account"
+import type { OrderThread } from "@/app/actions/messaging"
+import type { NewsItem, CartConfig, ShopSection } from "@/app/actions/settings"
+import type { VerificationRow } from "@/app/actions/verification"
 import { formatPrice } from "@/lib/utils"
 
 type OrderItem = { productId: string; name: string; size: string; price: number; quantity: number }
@@ -30,20 +38,30 @@ interface AdminDashboardProps {
   promos: PromoCode[]
   orders: Order[]
   users?: AdminUser[]
+  threads?: OrderThread[]
+  appSettings?: Record<string, any>
+  news?: NewsItem[]
+  cartConfig?: CartConfig
+  verifications?: VerificationRow[]
+  sections?: ShopSection[]
 }
 
 const TABS = [
-  { id: "overview",  label: "Aperçu",    icon: BarChart3  },
-  { id: "products",  label: "Produits",  icon: Package    },
-  { id: "orders",    label: "Commandes", icon: ShoppingBag},
-  { id: "promos",    label: "Codes",     icon: Zap        },
-  { id: "users",     label: "Membres",   icon: Users      },
-  { id: "settings",  label: "Réglages",  icon: Settings   },
+  { id: "overview",   label: "Aperçu",    icon: BarChart3     },
+  { id: "products",   label: "Produits",  icon: Package       },
+  { id: "sections",   label: "Sections",  icon: Tag           },
+  { id: "orders",     label: "Commandes", icon: ShoppingBag   },
+  { id: "messages",   label: "Messages",  icon: MessageSquare },
+  { id: "map",        label: "Carte",     icon: MapPin        },
+  { id: "kyc",        label: "KYC",       icon: ShieldCheck   },
+  { id: "promos",     label: "Codes",     icon: Zap           },
+  { id: "users",      label: "Membres",   icon: Users         },
+  { id: "settings",   label: "Réglages",  icon: Settings      },
 ] as const
 
 type TabId = typeof TABS[number]["id"]
 
-export function AdminDashboard({ products, promos, orders, users = [] }: AdminDashboardProps) {
+export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [], sections = [] }: AdminDashboardProps) {
   const [active, setActive] = useState<TabId>("overview")
   const router = useRouter()
 
@@ -88,8 +106,26 @@ export function AdminDashboard({ products, promos, orders, users = [] }: AdminDa
         </div>
       </header>
 
+      {/* ── Mobile tab bar — full width, sticky below header ── */}
+      <div className="sticky top-[57px] z-40 flex w-full overflow-x-auto border-b border-white/10 bg-void/95 backdrop-blur-md md:hidden">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActive(id)}
+            className={`flex shrink-0 flex-col items-center gap-1 px-4 py-3 font-mono text-[9px] uppercase tracking-widest transition ${
+              active === id
+                ? "border-b-2 border-violet-electric text-violet-electric"
+                : "text-ivory/40 hover:text-ivory/70"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="mx-auto flex w-full max-w-screen-xl flex-1 px-0">
-        {/* ── Sidebar ── */}
+        {/* ── Sidebar desktop only ── */}
         <aside className="hidden w-52 shrink-0 border-r border-white/10 bg-surface/20 md:block">
           <nav className="flex flex-col gap-1 p-4 pt-6">
             {TABS.map(({ id, label, icon: Icon }) => {
@@ -112,26 +148,8 @@ export function AdminDashboard({ products, promos, orders, users = [] }: AdminDa
           </nav>
         </aside>
 
-        {/* ── Mobile tab bar ── */}
-        <div className="flex w-full overflow-x-auto border-b border-white/10 bg-surface/20 md:hidden">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActive(id)}
-              className={`flex shrink-0 flex-col items-center gap-1 px-4 py-3 font-mono text-[9px] uppercase tracking-widest transition ${
-                active === id
-                  ? "border-b-2 border-violet-electric text-violet-electric"
-                  : "text-ivory/40"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
-
         {/* ── Content ── */}
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 p-4 md:p-8">
 
           {/* OVERVIEW */}
           {active === "overview" && (
@@ -201,7 +219,14 @@ export function AdminDashboard({ products, promos, orders, users = [] }: AdminDa
           {active === "products" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Produits</h2>
-              <AdminProductsPanel products={products} />
+              <AdminProductsPanel products={products} sections={sections} />
+            </div>
+          )}
+
+          {/* SECTIONS */}
+          {active === "sections" && (
+            <div className="animate-rise-fade">
+              <AdminSectionsPanel initial={sections} />
             </div>
           )}
 
@@ -210,6 +235,14 @@ export function AdminDashboard({ products, promos, orders, users = [] }: AdminDa
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Commandes</h2>
               <AdminOrdersPanel orders={orders} />
+            </div>
+          )}
+
+          {/* MESSAGES */}
+          {active === "messages" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">Messages</h2>
+              <AdminMessagingPanel initial={threads} />
             </div>
           )}
 
@@ -232,39 +265,32 @@ export function AdminDashboard({ products, promos, orders, users = [] }: AdminDa
             </div>
           )}
 
+          {/* CARTE */}
+          {active === "map" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">Carte de tournée</h2>
+              <AdminMap threads={threads} />
+            </div>
+          )}
+
+          {/* KYC */}
+          {active === "kyc" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">
+                Vérifications KYC{" "}
+                {verifications.length > 0 && (
+                  <span className="text-violet-electric/70 text-xl">({verifications.length})</span>
+                )}
+              </h2>
+              <AdminVerificationsPanel initial={verifications} />
+            </div>
+          )}
+
           {/* SETTINGS */}
           {active === "settings" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Réglages</h2>
-              <div className="clip-card border border-white/10 bg-surface/50 p-6 space-y-4">
-                <div>
-                  <p className="font-mono text-xs uppercase tracking-widest text-ivory/50 mb-1">
-                    Version
-                  </p>
-                  <p className="font-mono text-sm text-ivory">FULLTERPS33 Admin v1.0</p>
-                </div>
-                <div className="h-px bg-white/10" />
-                <div>
-                  <p className="font-mono text-xs uppercase tracking-widest text-ivory/50 mb-1">
-                    Session admin
-                  </p>
-                  <p className="font-mono text-sm text-ivory/60">
-                    Cookie sécurisé HMAC-SHA256 &middot; Expiration 4h
-                  </p>
-                </div>
-                <div className="h-px bg-white/10" />
-                <div>
-                  <p className="font-mono text-xs uppercase tracking-widest text-ivory/50 mb-2">
-                    Actions
-                  </p>
-                  <button
-                    onClick={handleLogout}
-                    className="clip-tag bg-signal/10 px-6 py-2.5 font-mono text-xs uppercase tracking-widest text-signal ring-1 ring-signal/30 transition hover:bg-signal/20"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
+              <AdminSettingsPanel settings={appSettings} news={news} cartConfig={cartConfig} />
             </div>
           )}
 
