@@ -18,10 +18,12 @@ export async function getAllSettings(): Promise<Record<string, any>> {
 
 export async function setSetting(key: string, value: any): Promise<void> {
   if (!await isAdmin()) throw new Error("Non autorisé")
+  // postgres.js : passer la valeur via sql.json() pour une sérialisation jsonb correcte
+  const jsonValue = sql.json(value)
   await sql`
     insert into app_settings (key, value, updated_at)
-    values (${key}, ${JSON.stringify(value)}::jsonb, now())
-    on conflict (key) do update set value = ${JSON.stringify(value)}::jsonb, updated_at = now()
+    values (${key}, ${jsonValue}, now())
+    on conflict (key) do update set value = ${jsonValue}, updated_at = now()
   `
   revalidatePath("/")
   revalidatePath("/admin")
@@ -98,10 +100,8 @@ export async function getShopSections(): Promise<ShopSection[]> {
 }
 
 export async function setShopSections(sections: ShopSection[]): Promise<void> {
-  if (!await isAdmin()) throw new Error("Non autorisé")
+  // setSetting vérifie déjà isAdmin() — pas de double vérification
   await setSetting("shop_sections", sections)
-  revalidatePath("/")
-  revalidatePath("/admin")
 }
 
 // ── News / Annonces ────────────────────────────────────────────────────────
