@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useTransition, useEffect, useRef } from "react"
-import { validateVerification, rejectVerification } from "@/app/actions/verification"
+import { validateVerification, rejectVerification, deleteVerification } from "@/app/actions/verification"
 import type { VerificationRow } from "@/app/actions/verification"
-import { CheckCircle, XCircle, Camera, Video, Loader2 } from "lucide-react"
+import { CheckCircle, XCircle, Camera, Video, Loader2, Trash2 } from "lucide-react"
 
 interface Props {
   initial: VerificationRow[]
@@ -57,6 +57,20 @@ export function AdminVerificationsPanel({ initial }: Props) {
         setItems(prev => prev.filter(x => x.user_token !== row.user_token))
         setSelected(null)
         fb("KYC validé — client débloqué")
+      } else {
+        fb(r.error ?? "Erreur")
+      }
+    })
+  }
+
+  function handleDelete(row: VerificationRow) {
+    if (!confirm(`Supprimer définitivement la demande KYC de ${row.pseudo} ?`)) return
+    startTransition(async () => {
+      const r = await deleteVerification(row.user_token)
+      if (r.ok) {
+        setItems(prev => prev.filter(x => x.user_token !== row.user_token))
+        setSelected(null)
+        fb("Demande KYC supprimée")
       } else {
         fb(r.error ?? "Erreur")
       }
@@ -205,6 +219,13 @@ export function AdminVerificationsPanel({ initial }: Props) {
                 className="flex items-center gap-2 border border-signal/30 bg-signal/10 px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-signal transition hover:bg-signal/20"
               >
                 <XCircle className="h-3.5 w-3.5" /> Rejeter
+              </button>
+              <button
+                onClick={() => handleDelete(selected)}
+                disabled={isPending}
+                className="flex items-center gap-2 border border-red-500/30 bg-red-500/10 px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-red-400 transition hover:bg-red-500/20 disabled:opacity-40"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Supprimer
               </button>
             </div>
           ) : (

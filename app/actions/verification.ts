@@ -178,6 +178,32 @@ export async function validateVerification(
 }
 
 /**
+ * Delete a KYC verification request entirely (admin only)
+ */
+export async function deleteVerification(
+  userToken: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!(await isAdmin())) return { ok: false, error: 'Accès refusé' }
+
+    const rows = await sql`
+      select photo_pathname, video_pathname from user_verifications
+      where user_token = ${userToken}
+    `
+    if (rows.length > 0) {
+      const rec = rows[0] as { photo_pathname?: string; video_pathname?: string }
+      if (rec.photo_pathname) await del(rec.photo_pathname).catch(() => {})
+      if (rec.video_pathname) await del(rec.video_pathname).catch(() => {})
+    }
+
+    await sql`delete from user_verifications where user_token = ${userToken}`
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Erreur' }
+  }
+}
+
+/**
  * Reject KYC (admin only)
  */
 export async function rejectVerification(

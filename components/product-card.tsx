@@ -6,6 +6,7 @@ import { badgeStyles, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
 import { BlobMedia } from "@/components/blob-media"
+import { ProductModal } from "@/components/product-modal"
 
 export function ProductCard({ product }: { product: Product }) {
   const [size, setSize] = useState(product.sizes[0])
@@ -27,8 +28,11 @@ export function ProductCard({ product }: { product: Product }) {
   ]
   const [mediaIndex, setMediaIndex] = useState(0)
   const currentMedia = allMedia[mediaIndex] ?? null
+  const [modalOpen, setModalOpen] = useState(false)
 
   return (
+    <>
+    <ProductModal product={product} isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     <div className="clip-card group flex flex-col border border-white/10 bg-surface transition hover:border-violet-electric/50 hover:shadow-glow-sm">
       <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-br from-surface2 to-void">
         {product.badge && (
@@ -109,17 +113,26 @@ export function ProductCard({ product }: { product: Product }) {
           ))}
         </div>
 
-        <div className="mt-auto flex items-center justify-between pt-2">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-2">
           <span className="font-mono text-base font-bold text-ivory">{formatPrice(displayPrice)}</span>
-          <button
-            disabled={disabled}
-            onClick={() => addToCart(product, size, displayPrice)}
-            className="clip-tag bg-violet-electric px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-ivory/30"
-          >
-            {disabled ? "Indisponible" : "Ajouter"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="border border-white/15 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ivory/60 transition hover:border-white/40 hover:text-ivory"
+            >
+              + d&apos;infos
+            </button>
+            <button
+              disabled={disabled}
+              onClick={() => addToCart(product, size, displayPrice)}
+              className="clip-tag bg-violet-electric px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-ivory/30"
+            >
+              {disabled ? "Indisponible" : "Ajouter"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
+    </>
   )
 }
