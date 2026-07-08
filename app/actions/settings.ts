@@ -18,12 +18,11 @@ export async function getAllSettings(): Promise<Record<string, any>> {
 
 export async function setSetting(key: string, value: any): Promise<void> {
   if (!await isAdmin()) throw new Error("Non autorisé")
-  // postgres.js : passer la valeur via sql.json() pour une sérialisation jsonb correcte
-  const jsonValue = sql.json(value)
+  // postgres.js sérialise les objets/tableaux JS directement en JSONB sans cast ni sql.json()
   await sql`
     insert into app_settings (key, value, updated_at)
-    values (${key}, ${jsonValue}, now())
-    on conflict (key) do update set value = ${jsonValue}, updated_at = now()
+    values (${key}, ${value}, now())
+    on conflict (key) do update set value = ${value}, updated_at = now()
   `
   revalidatePath("/")
   revalidatePath("/admin")
@@ -99,9 +98,15 @@ export async function getShopSections(): Promise<ShopSection[]> {
   return row as ShopSection[]
 }
 
-export async function setShopSections(sections: ShopSection[]): Promise<void> {
-  // setSetting vérifie déjà isAdmin() — pas de double vérification
-  await setSetting("shop_sections", sections)
+export async function setShopSections(sections: ShopSection[]): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await setSetting("shop_sections", sections)
+    return { ok: true }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("[v0] setShopSections error:", msg)
+    return { ok: false, error: msg }
+  }
 }
 
 // ── News / Annonces ────────────────────────────────────────────────────────

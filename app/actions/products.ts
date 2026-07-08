@@ -175,7 +175,7 @@ export async function updateProduct(
       discount_type  = ${input.discount_type ?? existing.discount_type},
       discount_value = ${input.discount_value ?? existing.discount_value},
       sort_order     = ${input.sort_order ?? existing.sort_order},
-      section        = ${input.section ?? existing.section},
+      section        = ${input.section || existing.section},
       updated_at     = now()
     where id = ${id}
   `

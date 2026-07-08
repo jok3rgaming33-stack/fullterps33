@@ -389,10 +389,10 @@ function VariantsEditor({ variants, onChange }: { variants: ProductVariant[]; on
 // ---------------------------------------------------------------------------
 
 const EMPTY: ProductInput = {
-  name: "", description: "", price: 0, category: "general",
+  name: "", description: "", price: 0, category: "",
   status: "disponible", badges: [], sizes: [], sku: "", stock: 0,
   image: "", media: [], variants: [], discount_type: null,
-  discount_value: null, sort_order: 0, section: "general",
+  discount_value: null, sort_order: 0, section: "",
 }
 
 function ProductForm({ initial, onSave, onCancel, sections = [] }: { initial?: Product; onSave: () => void; onCancel: () => void; sections?: ShopSection[] }) {

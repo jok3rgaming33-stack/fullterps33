@@ -45,9 +45,13 @@ export function AdminSectionsPanel({ initial }: Props) {
 
   function save(next: ShopSection[]) {
     startTransition(async () => {
-      await setShopSections(next)
-      setSections(next)
-      fb("Sections sauvegardées")
+      const result = await setShopSections(next)
+      if (result.ok) {
+        setSections(next)
+        fb("Sections sauvegardées")
+      } else {
+        fb(`Erreur : ${result.error ?? "inconnue"}`)
+      }
     })
   }
 
