@@ -113,7 +113,7 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="font-mono text-base font-bold text-ivory">{formatPrice(displayPrice)}</span>
           <button
             disabled={disabled}
-            onClick={() => addToCart(product, size)}
+            onClick={() => addToCart(product, size, displayPrice)}
             className="clip-tag bg-violet-electric px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-ivory/30"
           >
             {disabled ? "Indisponible" : "Ajouter"}

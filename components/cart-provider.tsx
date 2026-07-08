@@ -9,6 +9,8 @@ export type CartLine = {
   product: Product
   size: string
   quantity: number
+  /** Prix de la variante sélectionnée, en centimes */
+  price: number
 }
 
 type CheckoutState = "idle" | "loading" | "success" | "error"
@@ -20,7 +22,7 @@ type CartContextValue = {
   isOpen: boolean
   openCart: () => void
   closeCart: () => void
-  addToCart: (product: Product, size: string) => void
+  addToCart: (product: Product, size: string, price: number) => void
   removeLine: (productId: string, size: string) => void
   removeItem: (productId: string, size: string) => void
   updateQuantity: (productId: string, size: string, quantity: number) => void
@@ -50,7 +52,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [checkoutState, setCheckoutState] = useState<CheckoutState>("idle")
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
 
-  function addToCart(product: Product, size: string) {
+  function addToCart(product: Product, size: string, price: number) {
     setLines((prev) => {
       const existing = prev.find((l) => l.product.id === product.id && l.size === size)
       if (existing) {
@@ -58,7 +60,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           l.product.id === product.id && l.size === size ? { ...l, quantity: l.quantity + 1 } : l,
         )
       }
-      return [...prev, { product, size, quantity: 1 }]
+      return [...prev, { product, size, quantity: 1, price }]
     })
     setIsOpen(true)
   }
@@ -78,7 +80,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const totalCount = useMemo(() => lines.reduce((sum, l) => sum + l.quantity, 0), [lines])
-  const subtotal = useMemo(() => lines.reduce((sum, l) => sum + l.quantity * l.product.price, 0), [lines])
+  const subtotal = useMemo(() => lines.reduce((sum, l) => sum + l.quantity * l.price, 0), [lines])
   const totalPrice = Math.max(0, subtotal - discount)
 
   async function applyPromoCode(code: string) {
@@ -117,7 +119,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           productId: l.product.id,
           name: l.product.name,
           size: l.size,
-          price: l.product.price,
+          price: l.price,
           quantity: l.quantity,
         })),
         promoCode ?? undefined,

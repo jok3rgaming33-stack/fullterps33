@@ -325,7 +325,7 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
                             <Plus className="h-3 w-3" />
                           </button>
                         </div>
-                        <span className="font-mono text-sm font-bold">{formatPrice(line.product.price * line.quantity)}</span>
+                        <span className="font-mono text-sm font-bold">{formatPrice(line.price * line.quantity)}</span>
                       </div>
                     </div>
                   </li>
