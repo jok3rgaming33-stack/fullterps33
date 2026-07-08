@@ -7,12 +7,8 @@ const ALLOWED_TYPES = new Set([
   "video/mp4", "video/webm", "video/quicktime", "video/mov",
 ])
 
-// Désactive la limite de body par défaut (4 MB) — nécessaire pour les vidéos
-export const config = {
-  api: { bodyParser: false },
-}
-
-// Next.js App Router : désactive le body parsing interne
+// Next.js App Router — route segment config
+// En App Router le body n'est pas pré-parsé, pas besoin de désactiver bodyParser
 export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
