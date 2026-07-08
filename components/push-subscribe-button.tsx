@@ -63,7 +63,7 @@ export function PushSubscribeButton() {
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as string,
       })
 
       const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
