@@ -5,10 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { badgeStyles, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
-
-function isVideoUrl(url: string) {
-  return /\.(mp4|webm|mov)(\?|$)/i.test(url)
-}
+import { BlobMedia } from "@/components/blob-media"
 
 export function ProductCard({ product }: { product: Product }) {
   const [size, setSize] = useState(product.sizes[0])
@@ -35,22 +32,11 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         {currentMedia ? (
-          isVideoUrl(currentMedia) ? (
-            <video
-              src={currentMedia}
-              className="h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
-          ) : (
-            <img
-              src={currentMedia}
-              alt={product.name}
-              className="h-full w-full object-cover transition group-hover:scale-105"
-            />
-          )
+          <BlobMedia
+            src={currentMedia}
+            alt={product.name}
+            className="h-full w-full object-cover transition group-hover:scale-105"
+          />
         ) : (
           /* Placeholder quand aucun média */
           <svg viewBox="0 0 100 100" className="h-24 w-24 text-violet-electric/30 transition group-hover:text-violet-electric/50">

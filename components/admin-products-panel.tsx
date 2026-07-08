@@ -15,6 +15,7 @@ import {
   Plus, Trash2, Pencil, X, Upload, Loader2,
   Image as ImageIcon, GripVertical,
 } from "lucide-react"
+import { BlobMedia } from "@/components/blob-media"
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -110,10 +111,6 @@ function MediaUploader({
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState("")
-  const isVideo = value
-    ? /\.(mp4|webm|mov|quicktime)(\?|$)/i.test(value) || value.includes("video")
-    : false
-
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -139,11 +136,7 @@ function MediaUploader({
         onClick={() => !uploading && inputRef.current?.click()}
       >
         {value ? (
-          isVideo ? (
-            <video src={value} className="h-full w-full object-cover" muted playsInline />
-          ) : (
-            <img src={value} alt="" className="h-full w-full object-cover" />
-          )
+          <BlobMedia src={value} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="flex flex-col items-center gap-1.5 text-zinc-600">
             <ImageIcon size={24} />
@@ -192,10 +185,6 @@ function MediaUploader({
 // ---------------------------------------------------------------------------
 
 type UploadingItem = { name: string; progress: number }
-
-function isVideoUrl(url: string) {
-  return /\.(mp4|webm|mov|quicktime)(\?|$)/i.test(url) || url.includes("video")
-}
 
 function MediaGallery({ media, onChange }: { media: string[]; onChange: (urls: string[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -276,11 +265,7 @@ function MediaGallery({ media, onChange }: { media: string[]; onChange: (urls: s
         <div className="flex flex-wrap gap-2">
           {media.map((url, i) => (
             <div key={i} className="relative w-16 h-16 rounded overflow-hidden border border-zinc-700 group">
-              {isVideoUrl(url) ? (
-                <video src={url} className="w-full h-full object-cover" muted playsInline />
-              ) : (
-                <img src={url} alt="" className="w-full h-full object-cover" />
-              )}
+              <BlobMedia src={url} alt="" className="w-full h-full object-cover" />
               <button
                 type="button"
                 className="absolute inset-0 flex items-center justify-center bg-zinc-900/0 group-hover:bg-zinc-900/60 transition-colors"

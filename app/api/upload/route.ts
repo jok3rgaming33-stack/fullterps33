@@ -46,7 +46,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!body) return NextResponse.json({ error: "Body vide" }, { status: 400 })
 
     const blob = await put(safeName, body, {
-      access: "public",
+      access: "private",
       contentType: mimeType,
     })
 
