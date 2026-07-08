@@ -1,14 +1,27 @@
 "use client"
 
 import { useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { badgeStyles, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
+
+function isVideoUrl(url: string) {
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url)
+}
 
 export function ProductCard({ product }: { product: Product }) {
   const [size, setSize] = useState(product.sizes[0])
   const { addToCart } = useCart()
   const disabled = product.status === "rupture" || product.status === "bientot"
+
+  // Tous les médias : image principale + galerie additionnelle
+  const allMedia = [
+    ...(product.image ? [product.image] : []),
+    ...(product.media ?? []),
+  ]
+  const [mediaIndex, setMediaIndex] = useState(0)
+  const currentMedia = allMedia[mediaIndex] ?? null
 
   return (
     <div className="clip-card group flex flex-col border border-white/10 bg-surface transition hover:border-violet-electric/50 hover:shadow-glow-sm">
@@ -20,13 +33,64 @@ export function ProductCard({ product }: { product: Product }) {
             {product.badge}
           </span>
         )}
-        {/* Placeholder garment silhouette */}
-        <svg viewBox="0 0 100 100" className="h-24 w-24 text-violet-electric/30 transition group-hover:text-violet-electric/50">
-          <path
-            d="M35 15 L50 8 L65 15 L78 25 L70 35 L65 30 L65 90 L35 90 L35 30 L30 35 L22 25 Z"
-            fill="currentColor"
-          />
-        </svg>
+
+        {currentMedia ? (
+          isVideoUrl(currentMedia) ? (
+            <video
+              src={currentMedia}
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <img
+              src={currentMedia}
+              alt={product.name}
+              className="h-full w-full object-cover transition group-hover:scale-105"
+            />
+          )
+        ) : (
+          /* Placeholder quand aucun média */
+          <svg viewBox="0 0 100 100" className="h-24 w-24 text-violet-electric/30 transition group-hover:text-violet-electric/50">
+            <path
+              d="M35 15 L50 8 L65 15 L78 25 L70 35 L65 30 L65 90 L35 90 L35 30 L30 35 L22 25 Z"
+              fill="currentColor"
+            />
+          </svg>
+        )}
+
+        {/* Navigation carrousel si plusieurs médias */}
+        {allMedia.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMediaIndex((i) => (i - 1 + allMedia.length) % allMedia.length) }}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 rounded-full bg-void/70 p-0.5 text-ivory opacity-0 transition group-hover:opacity-100"
+              aria-label="Précédent"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMediaIndex((i) => (i + 1) % allMedia.length) }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-void/70 p-0.5 text-ivory opacity-0 transition group-hover:opacity-100"
+              aria-label="Suivant"
+            >
+              <ChevronRight size={16} />
+            </button>
+            {/* Indicateurs */}
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+              {allMedia.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setMediaIndex(idx) }}
+                  className={`h-1 rounded-full transition-all ${idx === mediaIndex ? "w-4 bg-violet-electric" : "w-1 bg-white/40"}`}
+                  aria-label={`Média ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">

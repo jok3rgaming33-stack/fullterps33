@@ -311,17 +311,50 @@ function MediaGallery({ media, onChange }: { media: string[]; onChange: (urls: s
 // ---------------------------------------------------------------------------
 
 function VariantsEditor({ variants, onChange }: { variants: ProductVariant[]; onChange: (v: ProductVariant[]) => void }) {
+  // États string locaux pour les champs prix — un par variante
+  const [priceInputs, setPriceInputs] = useState<string[]>(
+    () => variants.map((v) => (v.price ? (v.price / 100).toFixed(2) : ""))
+  )
+
+  function syncPriceInputs(newVariants: ProductVariant[]) {
+    setPriceInputs(newVariants.map((v) => (v.price ? (v.price / 100).toFixed(2) : "")))
+  }
+
   function add() {
-    onChange([...variants, { qty: 0, price: 0, label: "" }])
+    const next = [...variants, { qty: 0, price: 0, label: "" }]
+    onChange(next)
+    setPriceInputs((p) => [...p, ""])
   }
+
   function remove(i: number) {
-    onChange(variants.filter((_, idx) => idx !== i))
+    const next = variants.filter((_, idx) => idx !== i)
+    onChange(next)
+    setPriceInputs((p) => p.filter((_, idx) => idx !== i))
   }
-  function update(i: number, field: keyof ProductVariant, raw: string) {
+
+  function updateQty(i: number, raw: string) {
     const next = [...variants]
-    if (field === "price") next[i] = { ...next[i], price: cents(raw) }
-    else if (field === "qty") next[i] = { ...next[i], qty: parseInt(raw) || 0 }
-    else next[i] = { ...next[i], label: raw }
+    next[i] = { ...next[i], qty: parseInt(raw) || 0 }
+    onChange(next)
+  }
+
+  function updateLabel(i: number, raw: string) {
+    const next = [...variants]
+    next[i] = { ...next[i], label: raw }
+    onChange(next)
+  }
+
+  function updatePriceInput(i: number, raw: string) {
+    setPriceInputs((p) => p.map((v, idx) => (idx === i ? raw : v)))
+  }
+
+  function commitPrice(i: number, raw: string) {
+    const n = parseFloat(raw.replace(",", "."))
+    const cents = isNaN(n) ? 0 : Math.round(n * 100)
+    const formatted = isNaN(n) ? "" : n.toFixed(2)
+    setPriceInputs((p) => p.map((v, idx) => (idx === i ? formatted : v)))
+    const next = [...variants]
+    next[i] = { ...next[i], price: cents }
     onChange(next)
   }
 
@@ -339,24 +372,27 @@ function VariantsEditor({ variants, onChange }: { variants: ProductVariant[]; on
       {variants.map((v, i) => (
         <div key={i} className="grid grid-cols-[80px_90px_1fr_auto] gap-2 items-center">
           <input
-            type="number" min="0"
+            type="text"
+            inputMode="numeric"
             placeholder="Qté (g)"
             value={v.qty || ""}
-            onChange={(e) => update(i, "qty", e.target.value)}
+            onChange={(e) => updateQty(i, e.target.value)}
             className="input-admin"
           />
           <input
-            type="number" min="0" step="0.01"
+            type="text"
+            inputMode="decimal"
             placeholder="Prix (€)"
-            value={v.price ? euros(v.price) : ""}
-            onChange={(e) => update(i, "price", e.target.value)}
+            value={priceInputs[i] ?? ""}
+            onChange={(e) => updatePriceInput(i, e.target.value)}
+            onBlur={(e) => commitPrice(i, e.target.value)}
             className="input-admin"
           />
           <input
             type="text"
             placeholder="Label (ex: 5g)"
             value={v.label ?? ""}
-            onChange={(e) => update(i, "label", e.target.value)}
+            onChange={(e) => updateLabel(i, e.target.value)}
             className="input-admin"
           />
           <button type="button" onClick={() => remove(i)} className="text-red-500 hover:text-red-400 p-1">
