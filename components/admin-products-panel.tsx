@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useTransition } from "react"
-import { upload } from "@vercel/blob/client"
+
 import {
   createProduct,
   updateProduct,
@@ -47,18 +47,50 @@ function euros(c: number) {
   return (c / 100).toFixed(2)
 }
 
-const ACCEPTED = "image/*,video/mp4,video/webm,video/quicktime"
+const ACCEPTED = "image/*,video/mp4,video/webm,video/quicktime,video/mov"
 
-async function uploadFile(
+/** Upload via XHR pour avoir la vraie progression côté envoi */
+function uploadFile(
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  const blob = await upload(file.name, file, {
-    access: "public",
-    handleUploadUrl: "/api/upload",
-    onUploadProgress: ({ percentage }) => onProgress?.(percentage),
+  return new Promise((resolve, reject) => {
+    const fd = new FormData()
+    fd.append("file", file)
+
+    const xhr = new XMLHttpRequest()
+    xhr.open("POST", "/api/upload")
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onProgress?.(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as { url?: string; error?: string }
+          if (data.url) resolve(data.url)
+          else reject(new Error(data.error ?? "Réponse invalide"))
+        } catch {
+          reject(new Error("Réponse non-JSON"))
+        }
+      } else {
+        try {
+          const data = JSON.parse(xhr.responseText) as { error?: string }
+          reject(new Error(data.error ?? `Erreur ${xhr.status}`))
+        } catch {
+          reject(new Error(`Erreur ${xhr.status}`))
+        }
+      }
+    }
+
+    xhr.onerror = () => reject(new Error("Erreur réseau"))
+    xhr.onabort = () => reject(new Error("Upload annulé"))
+
+    xhr.send(fd)
   })
-  return blob.url
 }
 
 // ---------------------------------------------------------------------------
@@ -352,14 +384,17 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
     initial ? {
       name: initial.name, description: initial.description ?? "",
       price: initial.price, category: initial.category, status: initial.status,
-      badges: initial.badges, sizes: initial.sizes, sku: initial.sku,
-      stock: initial.stock, image: initial.image ?? "", media: initial.media,
-      variants: initial.variants, discount_type: initial.discount_type,
+      badges: initial.badges ?? [], sizes: initial.sizes ?? [], sku: initial.sku,
+      stock: initial.stock, image: initial.image ?? "", media: initial.media ?? [],
+      variants: initial.variants ?? [], discount_type: initial.discount_type,
       discount_value: initial.discount_value, sort_order: initial.sort_order,
       section: initial.section,
     } : EMPTY
   )
-  const [sizesInput, setSizesInput] = useState(initial?.sizes.join(", ") ?? "")
+  // État string local pour les champs prix — évite la conversion centimes/euros à chaque frappe
+  const [priceInput, setPriceInput] = useState(initial?.price ? (initial.price / 100).toFixed(2) : "")
+  const [discountInput, setDiscountInput] = useState(initial?.discount_value != null ? String(initial.discount_value) : "")
+  const [sizesInput, setSizesInput] = useState(initial?.sizes?.join(", ") ?? "")
   const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
 
@@ -377,6 +412,8 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
     setError("")
     const payload: ProductInput = {
       ...form,
+      price: Math.round(parseFloat(priceInput.replace(",", ".") || "0") * 100),
+      discount_value: discountInput ? parseFloat(discountInput.replace(",", ".")) || null : null,
       sizes: sizesInput.split(",").map((s) => s.trim()).filter(Boolean),
       image: form.image || null,
     }
@@ -416,9 +453,18 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="flex flex-col gap-1">
           <label className="label-admin">Prix de base (€)</label>
-          <input type="number" step="0.01" min="0" className="input-admin"
-            value={form.price ? euros(form.price) : ""}
-            onChange={(e) => set("price", cents(e.target.value))} placeholder="0.00" />
+          <input
+            type="text"
+            inputMode="decimal"
+            className="input-admin"
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+            onBlur={(e) => {
+              const n = parseFloat(e.target.value.replace(",", "."))
+              if (!isNaN(n)) setPriceInput(n.toFixed(2))
+            }}
+            placeholder="0.00"
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label className="label-admin">Stock</label>
@@ -454,9 +500,18 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
         {form.discount_type && (
           <div className="flex flex-col gap-1">
             <label className="label-admin">Valeur {form.discount_type === "percent" ? "(%)" : "(€)"}</label>
-            <input type="number" min="0" className="input-admin"
-              value={form.discount_value ?? ""}
-              onChange={(e) => set("discount_value", parseFloat(e.target.value) || null)} />
+            <input
+              type="text"
+              inputMode="decimal"
+              className="input-admin"
+              value={discountInput}
+              onChange={(e) => setDiscountInput(e.target.value)}
+              onBlur={(e) => {
+                const n = parseFloat(e.target.value.replace(",", "."))
+                if (!isNaN(n)) setDiscountInput(String(n))
+              }}
+              placeholder="0"
+            />
           </div>
         )}
       </div>
