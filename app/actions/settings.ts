@@ -77,6 +77,33 @@ export async function setMapOrigin(origin: MapOrigin): Promise<void> {
   await setSetting("map_origin", origin)
 }
 
+// ── Sections boutique ──────────────────────────────────────────────────────
+
+export type ShopSection = {
+  slug: string    // identifiant interne (ex: "vedette"), utilisé pour filtrer les produits
+  eyebrow: string // sur-titre (ex: "En vedette")
+  title: string   // titre principal (ex: "Édition Capsule")
+  gridCols: string // classes Tailwind (ex: "md:grid-cols-4")
+}
+
+const DEFAULT_SECTIONS: ShopSection[] = [
+  { slug: "vedette",    eyebrow: "En vedette",          title: "Édition Capsule",       gridCols: "md:grid-cols-4" },
+  { slug: "nouveautes", eyebrow: "Fraîchement débarqués", title: "Nouveautés",           gridCols: "md:grid-cols-4" },
+]
+
+export async function getShopSections(): Promise<ShopSection[]> {
+  const row = await getSetting("shop_sections")
+  if (!row || !Array.isArray(row) || row.length === 0) return DEFAULT_SECTIONS
+  return row as ShopSection[]
+}
+
+export async function setShopSections(sections: ShopSection[]): Promise<void> {
+  if (!await isAdmin()) throw new Error("Non autorisé")
+  await setSetting("shop_sections", sections)
+  revalidatePath("/")
+  revalidatePath("/admin")
+}
+
 // ── News / Annonces ────────────────────────────────────────────────────────
 
 export type NewsItem = {

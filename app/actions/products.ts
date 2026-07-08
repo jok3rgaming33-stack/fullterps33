@@ -60,9 +60,9 @@ function genId(name: string): string {
 // List / Get
 // ---------------------------------------------------------------------------
 
-export async function listProducts(category?: string): Promise<Product[]> {
-  const rows = category
-    ? await sql`select * from products where category = ${category} order by sort_order asc, created_at desc`
+export async function listProducts(section?: string): Promise<Product[]> {
+  const rows = section
+    ? await sql`select * from products where section = ${section} order by sort_order asc, created_at desc`
     : await sql`select * from products order by sort_order asc, created_at desc`
   return (rows as Record<string, unknown>[]).map(rowToProduct)
 }

@@ -14,9 +14,10 @@ import { AdminMessagingPanel } from "@/components/admin-messaging-panel"
 import { AdminSettingsPanel } from "@/components/admin-settings-panel"
 import { AdminVerificationsPanel } from "@/components/admin-verifications"
 import { AdminMap } from "@/components/admin-map"
+import { AdminSectionsPanel } from "@/components/admin-sections-panel"
 import type { AdminUser } from "@/app/actions/account"
 import type { OrderThread } from "@/app/actions/messaging"
-import type { NewsItem, CartConfig } from "@/app/actions/settings"
+import type { NewsItem, CartConfig, ShopSection } from "@/app/actions/settings"
 import type { VerificationRow } from "@/app/actions/verification"
 import { formatPrice } from "@/lib/utils"
 
@@ -42,11 +43,13 @@ interface AdminDashboardProps {
   news?: NewsItem[]
   cartConfig?: CartConfig
   verifications?: VerificationRow[]
+  sections?: ShopSection[]
 }
 
 const TABS = [
   { id: "overview",   label: "Aperçu",    icon: BarChart3     },
   { id: "products",   label: "Produits",  icon: Package       },
+  { id: "sections",   label: "Sections",  icon: Tag           },
   { id: "orders",     label: "Commandes", icon: ShoppingBag   },
   { id: "messages",   label: "Messages",  icon: MessageSquare },
   { id: "map",        label: "Carte",     icon: MapPin        },
@@ -58,7 +61,7 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"]
 
-export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [] }: AdminDashboardProps) {
+export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [], sections = [] }: AdminDashboardProps) {
   const [active, setActive] = useState<TabId>("overview")
   const router = useRouter()
 
@@ -216,7 +219,14 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
           {active === "products" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Produits</h2>
-              <AdminProductsPanel products={products} />
+              <AdminProductsPanel products={products} sections={sections} />
+            </div>
+          )}
+
+          {/* SECTIONS */}
+          {active === "sections" && (
+            <div className="animate-rise-fade">
+              <AdminSectionsPanel initial={sections} />
             </div>
           )}
 

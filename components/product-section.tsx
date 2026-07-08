@@ -1,30 +1,15 @@
 import type { Product } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 import { listProducts } from "@/app/actions/products"
-import { getSetting } from "@/app/actions/settings"
+import type { ShopSection } from "@/app/actions/settings"
 
-type SectionConfig = {
-  id: string
-  category: Product["category"]
-  eyebrow: string
-  title: string
-  gridCols: string
-  eyebrowKey?: string
-  titleKey?: string
-}
-
-export async function ProductSection({ config }: { config: SectionConfig }) {
-  const [items, eyebrowVal, titleVal] = await Promise.all([
-    listProducts(config.category),
-    config.eyebrowKey ? getSetting(config.eyebrowKey) : Promise.resolve(null),
-    config.titleKey   ? getSetting(config.titleKey)   : Promise.resolve(null),
-  ])
-
-  const eyebrow = (eyebrowVal as string | null) ?? config.eyebrow
-  const title   = (titleVal   as string | null) ?? config.title
+export async function ProductSection({ config }: { config: ShopSection }) {
+  const items = await listProducts(config.slug)
+  const eyebrow = config.eyebrow
+  const title   = config.title
 
   return (
-    <section id={config.id} className="mx-auto max-w-[1200px] px-4 py-16">
+    <section id={config.slug} className="mx-auto max-w-[1200px] px-4 py-16">
       <div className="mb-8 flex items-end justify-between border-b border-white/10 pb-4">
         <div>
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-violet-electric">

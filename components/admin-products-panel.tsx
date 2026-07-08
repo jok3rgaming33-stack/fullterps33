@@ -16,6 +16,7 @@ import {
   Image as ImageIcon, GripVertical,
 } from "lucide-react"
 import { BlobMedia } from "@/components/blob-media"
+import type { ShopSection } from "@/app/actions/settings"
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -27,8 +28,6 @@ const STATUSES: { value: Product["status"]; label: string }[] = [
   { value: "bientot", label: "Bientôt dispo" },
   { value: "reappro", label: "En réappro" },
 ]
-
-const SECTIONS = ["general", "capsule", "nouveautes", "exclusif"]
 
 const DISCOUNT_TYPES = [
   { value: "", label: "Aucune réduction" },
@@ -396,7 +395,7 @@ const EMPTY: ProductInput = {
   discount_value: null, sort_order: 0, section: "general",
 }
 
-function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave: () => void; onCancel: () => void }) {
+function ProductForm({ initial, onSave, onCancel, sections = [] }: { initial?: Product; onSave: () => void; onCancel: () => void; sections?: ShopSection[] }) {
   const [form, setForm] = useState<ProductInput>(
     initial ? {
       name: initial.name, description: initial.description ?? "",
@@ -482,9 +481,12 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
         </div>
         <div className="flex flex-col gap-1">
           <label className="label-admin">Section</label>
-          <select className="input-admin" value={form.section ?? "general"}
+          <select className="input-admin" value={form.section ?? ""}
             onChange={(e) => set("section", e.target.value)}>
-            {SECTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            <option value="">— Choisir —</option>
+            {sections.map((s) => (
+              <option key={s.slug} value={s.slug}>{s.title} ({s.slug})</option>
+            ))}
           </select>
         </div>
       </div>
@@ -648,7 +650,7 @@ function ProductRow({ product, onEdit, onDeleted }: { product: Product; onEdit: 
 // AdminProductsPanel — composant principal
 // ---------------------------------------------------------------------------
 
-export function AdminProductsPanel({ products: initial }: { products: Product[] }) {
+export function AdminProductsPanel({ products: initial, sections = [] }: { products: Product[]; sections?: ShopSection[] }) {
   const [products] = useState<Product[]>(initial)
   const [mode, setMode] = useState<"list" | "create" | "edit">("list")
   const [editing, setEditing] = useState<Product | undefined>()
@@ -693,7 +695,7 @@ export function AdminProductsPanel({ products: initial }: { products: Product[] 
           </h2>
         </div>
         <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5">
-          <ProductForm initial={editing} onSave={handleSaved}
+          <ProductForm initial={editing} onSave={handleSaved} sections={sections}
             onCancel={() => { setMode("list"); setEditing(undefined) }} />
         </div>
       </div>

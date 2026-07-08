@@ -7,6 +7,7 @@ import { ProductSection } from "@/components/product-section"
 import { LightningDivider } from "@/components/lightning-divider"
 import { CheckoutCart } from "@/components/checkout-cart"
 import { Footer } from "@/components/footer"
+import { getShopSections } from "@/app/actions/settings"
 
 export const dynamic = "force-dynamic"
 
@@ -14,7 +15,10 @@ export default async function HomePage() {
   const token = await getCustomerToken()
   if (!token) redirect("/signup")
 
-  const customer = await getCurrentCustomer()
+  const [customer, sections] = await Promise.all([
+    getCurrentCustomer(),
+    getShopSections(),
+  ])
   const userData = customer ? { pseudo: customer.pseudo, token: customer.token } : null
 
   return (
@@ -22,29 +26,12 @@ export default async function HomePage() {
       <Navbar userData={userData} />
       <main>
         <Hero />
-        <ProductSection
-          config={{
-            id: "capsule",
-            category: "capsule",
-            eyebrow: "En vedette",
-            title: "Édition Capsule",
-            gridCols: "md:grid-cols-4",
-            eyebrowKey: "section_capsule_eyebrow",
-            titleKey:   "section_capsule_title",
-          }}
-        />
-        <LightningDivider label="orage urbain" />
-        <ProductSection
-          config={{
-            id: "nouveautes",
-            category: "nouveautes",
-            eyebrow: "Fraîchement débarqué",
-            title: "Nouveautés",
-            gridCols: "md:grid-cols-4",
-            eyebrowKey: "section_nouveautes_eyebrow",
-            titleKey:   "section_nouveautes_title",
-          }}
-        />
+        {sections.map((sec, i) => (
+          <div key={sec.slug}>
+            <ProductSection config={sec} />
+            {i < sections.length - 1 && <LightningDivider label="orage urbain" />}
+          </div>
+        ))}
       </main>
       <Footer />
       <CheckoutCart userData={userData} />
