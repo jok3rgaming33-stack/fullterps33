@@ -1,49 +1,21 @@
 "use client"
 
-import { useState, useTransition, useEffect, useRef } from "react"
+import { useState, useTransition } from "react"
 import { validateVerification, rejectVerification, deleteVerification } from "@/app/actions/verification"
 import type { VerificationRow } from "@/app/actions/verification"
-import { CheckCircle, XCircle, Camera, Video, Loader2, Trash2 } from "lucide-react"
+import { CheckCircle, XCircle, Camera, Video, Trash2 } from "lucide-react"
 
 interface Props {
   initial: VerificationRow[]
 }
 
-type MediaUrls = { photo: string | null; video: string | null }
-
-async function fetchMediaUrls(row: VerificationRow): Promise<MediaUrls> {
-  const get = async (blobUrl: string | null) => {
-    if (!blobUrl) return null
-    const res = await fetch(`/api/verification/media?blobUrl=${encodeURIComponent(blobUrl)}`)
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.url as string
-  }
-  const [photo, video] = await Promise.all([get(row.photo_pathname), get(row.video_pathname)])
-  return { photo, video }
-}
-
 export function AdminVerificationsPanel({ initial }: Props) {
   const [items, setItems] = useState<VerificationRow[]>(initial)
   const [selected, setSelected] = useState<VerificationRow | null>(null)
-  const [media, setMedia] = useState<MediaUrls>({ photo: null, video: null })
-  const [mediaLoading, setMediaLoading] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [showReject, setShowReject] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const prevSelectedId = useRef<string | null>(null)
-
-  useEffect(() => {
-    if (!selected || selected.id === prevSelectedId.current) return
-    prevSelectedId.current = selected.id
-    setMedia({ photo: null, video: null })
-    setMediaLoading(true)
-    fetchMediaUrls(selected).then((urls) => {
-      setMedia(urls)
-      setMediaLoading(false)
-    })
-  }, [selected])
 
   function fb(msg: string) {
     setFeedback(msg)
@@ -151,58 +123,48 @@ export function AdminVerificationsPanel({ initial }: Props) {
             </p>
           </div>
 
-          {/* Médias */}
-          {mediaLoading ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-ivory/40">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="font-mono text-xs">Chargement des médias...</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {/* Photo */}
-              <div className="space-y-1.5">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Selfie</p>
-                {media.photo ? (
-                  <img
-                    src={media.photo}
-                    alt="Selfie de vérification"
-                    className="w-full border border-white/10 object-cover"
-                    style={{ maxHeight: 260 }}
-                  />
-                ) : (
-                  <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
-                    <div className="text-center">
-                      <Camera className="mx-auto mb-1 h-5 w-5 text-ivory/20" />
-                      <p className="font-mono text-[9px] text-ivory/30">
-                        {selected.photo_pathname ? "Erreur chargement" : "Pas de photo"}
-                      </p>
-                    </div>
+          {/* Médias — URLs publiques Blob, utilisées directement */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Photo */}
+            <div className="space-y-1.5">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Selfie</p>
+              {selected.photo_pathname ? (
+                <img
+                  src={selected.photo_pathname}
+                  alt="Selfie de vérification"
+                  className="w-full border border-white/10 object-cover"
+                  style={{ maxHeight: 260 }}
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
+                  <div className="text-center">
+                    <Camera className="mx-auto mb-1 h-5 w-5 text-ivory/20" />
+                    <p className="font-mono text-[9px] text-ivory/30">Pas de photo</p>
                   </div>
-                )}
-              </div>
-              {/* Vidéo */}
-              <div className="space-y-1.5">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Vidéo</p>
-                {media.video ? (
-                  <video
-                    src={media.video}
-                    controls
-                    className="w-full border border-white/10"
-                    style={{ maxHeight: 260 }}
-                  />
-                ) : (
-                  <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
-                    <div className="text-center">
-                      <Video className="mx-auto mb-1 h-5 w-5 text-ivory/20" />
-                      <p className="font-mono text-[9px] text-ivory/30">
-                        {selected.video_pathname ? "Erreur chargement" : "Pas de vidéo"}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+            {/* Vidéo */}
+            <div className="space-y-1.5">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Vidéo</p>
+              {selected.video_pathname ? (
+                <video
+                  src={selected.video_pathname}
+                  controls
+                  className="w-full border border-white/10"
+                  style={{ maxHeight: 260 }}
+                />
+              ) : (
+                <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
+                  <div className="text-center">
+                    <Video className="mx-auto mb-1 h-5 w-5 text-ivory/20" />
+                    <p className="font-mono text-[9px] text-ivory/30">Pas de vidéo</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Actions */}
           {!showReject ? (
