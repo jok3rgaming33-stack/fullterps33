@@ -10,6 +10,7 @@ import { Footer } from "@/components/footer"
 export const dynamic = "force-dynamic"
 
 export default async function HomePage() {
+  // Sécurité préservée et active pour le déploiement de production
   const token = await getCustomerToken()
   if (!token) redirect("/signup")
 
@@ -18,16 +19,20 @@ export default async function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        
+        {/* Première section mise à jour avec le titre de la capture d'écran */}
         <ProductSection
           config={{
             id: "capsule",
             category: "capsule",
             eyebrow: "En vedette",
-            title: "Édition Capsule",
+            title: "Notre Menu",
             gridCols: "md:grid-cols-4",
           }}
         />
+        
         <LightningDivider label="orage urbain" />
+        
         <ProductSection
           config={{
             id: "nouveautes",
