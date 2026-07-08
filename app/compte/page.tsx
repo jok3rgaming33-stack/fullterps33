@@ -2,13 +2,13 @@ import { redirect } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { LogoutButton } from "@/components/logout-button"
-import { AccountOrders } from "@/components/account-orders"
 import { getCurrentCustomer } from "@/app/actions/account"
-import { listMyOrders } from "@/app/actions/orders"
+import { getThreadsForToken } from "@/app/actions/messaging"
 import { tierForPoints } from "@/lib/loyalty"
 import { formatPrice } from "@/lib/utils"
 import { LoyaltyModal } from "@/components/loyalty-modal"
 import { PushSubscribeButton } from "@/components/push-subscribe-button"
+import { MessagerieClient } from "@/components/messagerie-client"
 
 export const dynamic = "force-dynamic"
 
@@ -16,9 +16,12 @@ export default async function AccountPage() {
   const customer = await getCurrentCustomer()
   if (!customer) redirect("/signup")
 
-  const orders = await listMyOrders()
-  const tier = tierForPoints(customer.loyaltyPoints)
+  const [threads, tier] = await Promise.all([
+    getThreadsForToken(customer.token),
+    Promise.resolve(tierForPoints(customer.loyaltyPoints)),
+  ])
   const progress = Math.min(100, Math.round((customer.loyaltyPoints / tier.nextAt) * 100))
+  const userData = { pseudo: customer.pseudo, token: customer.token }
 
   return (
     <>
@@ -66,10 +69,10 @@ export default async function AccountPage() {
           <PushSubscribeButton />
         </div>
 
-        {/* Commandes */}
+        {/* Commandes & messagerie */}
         <section className="mt-10">
-          <h2 className="mb-4 font-display text-2xl tracking-wide">Mes commandes</h2>
-          <AccountOrders orders={orders} />
+          <h2 className="mb-4 font-display text-2xl tracking-wide">Mes commandes & messages</h2>
+          <MessagerieClient userData={userData} initialThreads={threads} />
         </section>
       </main>
       <Footer />
