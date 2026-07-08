@@ -62,6 +62,12 @@ export async function submitVerification(input: {
         validated_at = null,
         rejection_reason = null
     `
+    // Notification admin — nouvelle vérification KYC
+    try {
+      const { sendAdminPush } = await import("@/app/actions/push")
+      await sendAdminPush("Vérification KYC", `Un client a soumis ses documents KYC.`)
+    } catch { /* optionnel */ }
+
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Erreur" }

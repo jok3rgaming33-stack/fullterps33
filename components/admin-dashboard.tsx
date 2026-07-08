@@ -15,6 +15,7 @@ import { AdminSettingsPanel } from "@/components/admin-settings-panel"
 import { AdminVerificationsPanel } from "@/components/admin-verifications"
 import { AdminMap } from "@/components/admin-map"
 import { AdminSectionsPanel } from "@/components/admin-sections-panel"
+import { AdminNotificationBell } from "@/components/admin-notification-bell"
 import type { AdminUser } from "@/app/actions/account"
 import type { OrderThread } from "@/app/actions/messaging"
 import type { NewsItem, CartConfig, ShopSection } from "@/app/actions/settings"
@@ -98,13 +99,16 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 border border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-ivory/60 transition hover:border-violet-electric/50 hover:text-ivory"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Déconnexion
-          </button>
+          <div className="flex items-center gap-4">
+            <AdminNotificationBell />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 border border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-ivory/60 transition hover:border-violet-electric/50 hover:text-ivory"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Déconnexion
+            </button>
+          </div>
         </div>
       </header>
 

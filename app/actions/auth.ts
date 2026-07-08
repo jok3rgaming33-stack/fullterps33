@@ -91,6 +91,12 @@ export async function registerUser(): Promise<AuthResult> {
     // Set session with token
     await setCustomerSession(token)
 
+    // Notification admin — nouveau client
+    try {
+      const { sendAdminPush } = await import('@/app/actions/push')
+      await sendAdminPush('Nouveau client', `${pseudo} vient de créer un compte.`)
+    } catch { /* optionnel */ }
+
     return {
       ok: true,
       message: 'Bienvenue dans FULLTERPS33!',

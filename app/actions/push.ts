@@ -56,3 +56,22 @@ export async function broadcastPush(title: string, body: string): Promise<{ ok: 
   const sent = results.filter((r) => r.status === 'fulfilled').length
   return { ok: true, sent }
 }
+
+/**
+ * Envoie une notification push uniquement aux abonnés admin (role = 'admin').
+ * Appelé depuis les server actions sans vérification isAdmin() car c'est une action système.
+ */
+export async function sendAdminPush(title: string, body: string): Promise<void> {
+  try {
+    const rows = (await sql`
+      select endpoint, p256dh, auth from push_subscriptions where role = 'admin'
+    `) as unknown as PushRow[]
+    if (!rows.length) return
+    const payload = JSON.stringify({ title, body, icon: '/icon-192.png', badge: '/icon-192.png' })
+    await Promise.allSettled(
+      rows.map((r) =>
+        webpush.sendNotification({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload)
+      )
+    )
+  } catch { /* push optionnel — ne bloque jamais l'action principale */ }
+}

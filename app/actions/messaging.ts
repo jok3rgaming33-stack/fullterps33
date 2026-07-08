@@ -85,8 +85,8 @@ export async function createOrderThread(input: NewOrderInput): Promise<{ id: num
   `
 
   try {
-    const { broadcastPush } = await import("@/app/actions/push")
-    await broadcastPush("Nouvelle commande", `${name} vient de passer une commande (#${thread.id}).`)
+    const { sendAdminPush } = await import("@/app/actions/push")
+    await sendAdminPush("Nouvelle commande", `${name} vient de passer une commande (#${thread.id}).`)
   } catch { /* push optionnel */ }
 
   revalidatePath("/admin")
@@ -125,8 +125,8 @@ export async function createGeneralInquiryThread(input: {
   `
 
   try {
-    const { broadcastPush } = await import("@/app/actions/push")
-    await broadcastPush(`Message de ${name}`, body.length > 80 ? `${body.slice(0, 77)}…` : body)
+    const { sendAdminPush } = await import("@/app/actions/push")
+    await sendAdminPush(`Nouveau message de ${name}`, body.length > 80 ? `${body.slice(0, 77)}…` : body)
   } catch { /* push optionnel */ }
 
   revalidatePath("/admin")
@@ -258,6 +258,12 @@ export async function addMessage(threadId: number, sender: "client" | "vendeur",
     } catch { /* push optionnel */ }
   } else {
     await sql`update order_threads set unread_admin = unread_admin + 1 where id = ${threadId}`
+    // Notification admin — nouveau message client
+    try {
+      const { sendAdminPush } = await import("@/app/actions/push")
+      const preview = text.length > 80 ? `${text.slice(0, 77)}…` : text
+      await sendAdminPush(`Message client #${threadId}`, preview)
+    } catch { /* optionnel */ }
   }
 
   revalidatePath("/admin")
