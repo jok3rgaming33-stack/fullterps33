@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useTransition } from "react"
+import { upload } from "@vercel/blob/client"
 import {
   createProduct,
   updateProduct,
@@ -12,7 +13,7 @@ import type { Product, ProductVariant } from "@/lib/types"
 import type { BadgeKey } from "@/lib/badges"
 import {
   Plus, Trash2, Pencil, X, Upload, Loader2,
-  Image as ImageIcon, Video, GripVertical,
+  Image as ImageIcon, GripVertical,
 } from "lucide-react"
 
 // ---------------------------------------------------------------------------
@@ -46,16 +47,18 @@ function euros(c: number) {
   return (c / 100).toFixed(2)
 }
 
-async function uploadFile(file: File): Promise<string> {
-  const fd = new FormData()
-  fd.append("file", file)
-  const res = await fetch("/api/upload", { method: "POST", body: fd })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as { error?: string }).error || "Erreur upload")
-  }
-  const { url } = await res.json() as { url: string }
-  return url
+const ACCEPTED = "image/*,video/mp4,video/webm,video/quicktime"
+
+async function uploadFile(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  const blob = await upload(file.name, file, {
+    access: "public",
+    handleUploadUrl: "/api/upload",
+    onUploadProgress: ({ percentage }) => onProgress?.(percentage),
+  })
+  return blob.url
 }
 
 // ---------------------------------------------------------------------------
@@ -73,57 +76,80 @@ function MediaUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [error, setError] = useState("")
-  const isVideo = value?.includes(".mp4") || value?.includes(".webm")
+  const isVideo = value
+    ? /\.(mp4|webm|mov|quicktime)(\?|$)/i.test(value) || value.includes("video")
+    : false
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setError("")
+    setProgress(0)
     setUploading(true)
     try {
-      const url = await uploadFile(file)
+      const url = await uploadFile(file, setProgress)
       onChange(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur upload")
     } finally {
       setUploading(false)
+      if (inputRef.current) inputRef.current.value = ""
     }
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <span className="label-admin">{label}</span>
       <div
-        className="relative flex items-center justify-center border border-dashed border-zinc-700 rounded-lg h-28 cursor-pointer bg-zinc-900/50 hover:border-violet-500 transition-colors overflow-hidden"
-        onClick={() => inputRef.current?.click()}
+        className="relative flex items-center justify-center border border-dashed border-zinc-700 rounded-lg h-32 cursor-pointer bg-zinc-900/50 hover:border-violet-500 transition-colors overflow-hidden"
+        onClick={() => !uploading && inputRef.current?.click()}
       >
         {value ? (
-          isVideo
-            ? <video src={value} className="h-full w-full object-cover" muted playsInline />
-            : <img src={value} alt="" className="h-full w-full object-cover" />
+          isVideo ? (
+            <video src={value} className="h-full w-full object-cover" muted playsInline />
+          ) : (
+            <img src={value} alt="" className="h-full w-full object-cover" />
+          )
         ) : (
-          <div className="flex flex-col items-center gap-1 text-zinc-600">
-            <ImageIcon size={22} />
-            <span className="text-xs">Cliquer pour uploader</span>
+          <div className="flex flex-col items-center gap-1.5 text-zinc-600">
+            <ImageIcon size={24} />
+            <span className="text-xs">Image ou vidéo</span>
           </div>
         )}
+
         {uploading && (
-          <div className="absolute inset-0 bg-zinc-900/70 flex items-center justify-center">
-            <Loader2 size={20} className="animate-spin text-violet-400" />
+          <div className="absolute inset-0 bg-zinc-900/80 flex flex-col items-center justify-center gap-2">
+            <Loader2 size={18} className="animate-spin text-violet-400" />
+            <div className="w-3/4 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-violet-500 rounded-full transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="font-mono text-[10px] text-zinc-400">{progress}%</span>
           </div>
         )}
+
         {value && !uploading && (
           <button
             type="button"
-            className="absolute top-1 right-1 bg-zinc-900/80 rounded p-0.5 text-zinc-400 hover:text-red-400"
+            className="absolute top-1.5 right-1.5 bg-zinc-900/90 rounded p-1 text-zinc-400 hover:text-red-400 transition-colors"
             onClick={(e) => { e.stopPropagation(); onChange("") }}
+            aria-label="Supprimer"
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         )}
       </div>
-      <input ref={inputRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleFile} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED}
+        className="hidden"
+        onChange={handleFile}
+      />
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   )
@@ -133,58 +159,117 @@ function MediaUploader({
 // MediaGallery — médias additionnels multiples
 // ---------------------------------------------------------------------------
 
+type UploadingItem = { name: string; progress: number }
+
+function isVideoUrl(url: string) {
+  return /\.(mp4|webm|mov|quicktime)(\?|$)/i.test(url) || url.includes("video")
+}
+
 function MediaGallery({ media, onChange }: { media: string[]; onChange: (urls: string[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
+  const [uploading, setUploading] = useState<UploadingItem[]>([])
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
-    setUploading(true)
-    try {
-      const urls = await Promise.all(files.map(uploadFile))
-      onChange([...media, ...urls])
-    } finally {
-      setUploading(false)
-      if (inputRef.current) inputRef.current.value = ""
-    }
+
+    // Initialise l'état de progression pour chaque fichier
+    setUploading(files.map((f) => ({ name: f.name, progress: 0 })))
+
+    const results = await Promise.allSettled(
+      files.map((file, idx) =>
+        uploadFile(file, (pct) =>
+          setUploading((prev) =>
+            prev.map((item, i) => (i === idx ? { ...item, progress: pct } : item))
+          )
+        )
+      )
+    )
+
+    const newUrls = results
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+      .map((r) => r.value)
+
+    onChange([...media, ...newUrls])
+    setUploading([])
+    if (inputRef.current) inputRef.current.value = ""
   }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="label-admin">Médias additionnels ({media.length})</span>
+        <span className="label-admin">
+          Médias additionnels
+          {media.length > 0 && (
+            <span className="ml-1.5 text-zinc-500">({media.length})</span>
+          )}
+        </span>
         <button
           type="button"
-          className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300"
+          className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors"
           onClick={() => inputRef.current?.click()}
+          disabled={uploading.length > 0}
         >
-          {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+          {uploading.length > 0 ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Upload size={12} />
+          )}
           Ajouter
         </button>
       </div>
-      {media.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {media.map((url, i) => {
-            const isVideo = url.includes(".mp4") || url.includes(".webm")
-            return (
-              <div key={i} className="relative w-16 h-16 rounded overflow-hidden border border-zinc-700">
-                {isVideo
-                  ? <video src={url} className="w-full h-full object-cover" muted />
-                  : <img src={url} alt="" className="w-full h-full object-cover" />}
-                <button
-                  type="button"
-                  className="absolute top-0.5 right-0.5 bg-zinc-900/80 rounded p-0.5 text-zinc-400 hover:text-red-400"
-                  onClick={() => onChange(media.filter((_, idx) => idx !== i))}
-                >
-                  <X size={10} />
-                </button>
+
+      {/* Fichiers en cours d'upload */}
+      {uploading.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {uploading.map((item, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-zinc-500 truncate flex-1">{item.name}</span>
+              <div className="w-24 h-1.5 bg-zinc-700 rounded-full overflow-hidden shrink-0">
+                <div
+                  className="h-full bg-violet-500 rounded-full transition-all duration-200"
+                  style={{ width: `${item.progress}%` }}
+                />
               </div>
-            )
-          })}
+              <span className="font-mono text-[10px] text-zinc-500 w-8 text-right shrink-0">
+                {item.progress}%
+              </span>
+            </div>
+          ))}
         </div>
       )}
-      <input ref={inputRef} type="file" accept="image/*,video/mp4,video/webm" multiple className="hidden" onChange={handleFiles} />
+
+      {/* Grille des médias existants */}
+      {media.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {media.map((url, i) => (
+            <div key={i} className="relative w-16 h-16 rounded overflow-hidden border border-zinc-700 group">
+              {isVideoUrl(url) ? (
+                <video src={url} className="w-full h-full object-cover" muted playsInline />
+              ) : (
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              )}
+              <button
+                type="button"
+                className="absolute inset-0 flex items-center justify-center bg-zinc-900/0 group-hover:bg-zinc-900/60 transition-colors"
+                onClick={() => onChange(media.filter((_, idx) => idx !== i))}
+                aria-label="Supprimer ce média"
+              >
+                <X size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED}
+        multiple
+        className="hidden"
+        onChange={handleFiles}
+      />
     </div>
   )
 }

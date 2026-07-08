@@ -1,52 +1,49 @@
-import { put } from "@vercel/blob"
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
 import { type NextRequest, NextResponse } from "next/server"
 import { isAdmin } from "@/lib/auth"
 
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "video/mp4",
-  "video/webm",
-]
+const ALLOWED_TYPES = new Set([
+  "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif",
+  "video/mp4", "video/webm", "video/quicktime",
+])
 
-const MAX_SIZE = 20 * 1024 * 1024 // 20 MB
-
-export async function POST(request: NextRequest) {
+/**
+ * Route utilisée par @vercel/blob/client upload() pour :
+ * 1. Générer un token client (GET-like via POST body type=blob.generate-client-token)
+ * 2. Confirmer l'upload terminé (POST body type=blob.upload-completed)
+ *
+ * Le fichier transite directement du navigateur vers Vercel Blob —
+ * aucune limite de body Next.js ne s'applique.
+ */
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const admin = await isAdmin()
   if (!admin) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
   }
 
+  const body = (await request.json()) as HandleUploadBody
+
   try {
-    const formData = await request.formData()
-    const file = formData.get("file") as File | null
-
-    if (!file) {
-      return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 })
-    }
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: "Type de fichier non supporté" }, { status: 400 })
-    }
-
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: "Fichier trop lourd (max 20 Mo)" }, { status: 400 })
-    }
-
-    const ext = file.name.split(".").pop() ?? "bin"
-    const filename = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
-    const blob = await put(filename, file, {
-      access: "public",
-      contentType: file.type,
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        return {
+          allowedContentTypes: [...ALLOWED_TYPES],
+          addRandomSuffix: true,
+        }
+      },
+      onUploadCompleted: async ({ blob }) => {
+        console.log("[upload] completed:", blob.url)
+      },
     })
 
-    return NextResponse.json({ url: blob.url })
+    return NextResponse.json(jsonResponse)
   } catch (error) {
-    console.error("[upload] error:", error)
-    return NextResponse.json({ error: "Erreur upload" }, { status: 500 })
+    console.error("[upload] handleUpload error:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur upload" },
+      { status: 400 },
+    )
   }
 }
