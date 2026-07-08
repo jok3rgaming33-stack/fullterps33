@@ -1,21 +1,42 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { validateVerification, rejectVerification, deleteVerification } from "@/app/actions/verification"
 import type { VerificationRow } from "@/app/actions/verification"
-import { CheckCircle, XCircle, Camera, Video, Trash2 } from "lucide-react"
+import { CheckCircle, XCircle, Camera, Video, Trash2, Loader2 } from "lucide-react"
 
 interface Props {
   initial: VerificationRow[]
 }
 
+type MediaUrls = { photo: string | null; video: string | null; loading: boolean }
+
+async function loadMediaUrls(row: VerificationRow): Promise<{ photo: string | null; video: string | null }> {
+  // La route /api/verification/media proxifie les blobs privés avec le BLOB_READ_WRITE_TOKEN
+  const proxyUrl = (blobUrl: string | null) =>
+    blobUrl ? `/api/verification/media?blobUrl=${encodeURIComponent(blobUrl)}` : null
+  return {
+    photo: proxyUrl(row.photo_pathname),
+    video: proxyUrl(row.video_pathname),
+  }
+}
+
 export function AdminVerificationsPanel({ initial }: Props) {
   const [items, setItems] = useState<VerificationRow[]>(initial)
   const [selected, setSelected] = useState<VerificationRow | null>(null)
+  const [media, setMedia] = useState<MediaUrls>({ photo: null, video: null, loading: false })
   const [rejectReason, setRejectReason] = useState("")
   const [showReject, setShowReject] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    if (!selected) return
+    setMedia({ photo: null, video: null, loading: true })
+    loadMediaUrls(selected).then(urls => {
+      setMedia({ ...urls, loading: false })
+    })
+  }, [selected?.id])
 
   function fb(msg: string) {
     setFeedback(msg)
@@ -86,7 +107,7 @@ export function AdminVerificationsPanel({ initial }: Props) {
         {items.map(row => (
           <button
             key={row.id}
-            onClick={() => { setSelected(row); setShowReject(false); setRejectReason("") }}
+            onClick={() => { setSelected(row); setShowReject(false); setRejectReason(""); setMedia({ photo: null, video: null, loading: true }) }}
             className={`w-full border p-3 text-left transition ${
               selected?.id === row.id
                 ? "border-violet-electric/50 bg-violet-electric/10"
@@ -123,47 +144,48 @@ export function AdminVerificationsPanel({ initial }: Props) {
             </p>
           </div>
 
-          {/* Médias — URLs publiques Blob, utilisées directement */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Photo */}
-            <div className="space-y-1.5">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Selfie</p>
-              {selected.photo_pathname ? (
-                <img
-                  src={selected.photo_pathname}
-                  alt="Selfie de vérification"
-                  className="w-full border border-white/10 object-cover"
-                  style={{ maxHeight: 260 }}
-                />
-              ) : (
-                <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
-                  <div className="text-center">
-                    <Camera className="mx-auto mb-1 h-5 w-5 text-ivory/20" />
-                    <p className="font-mono text-[9px] text-ivory/30">Pas de photo</p>
-                  </div>
-                </div>
-              )}
+          {/* Médias — proxy via /api/verification/media (blobs privés) */}
+          {media.loading ? (
+            <div className="flex items-center justify-center gap-2 py-8 text-ivory/40">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="font-mono text-xs">Chargement…</span>
             </div>
-            {/* Vidéo */}
-            <div className="space-y-1.5">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Vidéo</p>
-              {selected.video_pathname ? (
-                <video
-                  src={selected.video_pathname}
-                  controls
-                  className="w-full border border-white/10"
-                  style={{ maxHeight: 260 }}
-                />
-              ) : (
-                <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
-                  <div className="text-center">
-                    <Video className="mx-auto mb-1 h-5 w-5 text-ivory/20" />
-                    <p className="font-mono text-[9px] text-ivory/30">Pas de vidéo</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* Photo */}
+              <div className="space-y-1.5">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Selfie</p>
+                {media.photo ? (
+                  <img
+                    src={media.photo}
+                    alt="Selfie de vérification"
+                    className="w-full border border-white/10 object-cover"
+                    style={{ maxHeight: 260 }}
+                  />
+                ) : (
+                  <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
+                    <Camera className="h-5 w-5 text-ivory/20" />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              {/* Vidéo */}
+              <div className="space-y-1.5">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Vidéo</p>
+                {media.video ? (
+                  <video
+                    src={media.video}
+                    controls
+                    className="w-full border border-white/10"
+                    style={{ maxHeight: 260 }}
+                  />
+                ) : (
+                  <div className="flex h-40 items-center justify-center border border-white/10 bg-void/40">
+                    <Video className="h-5 w-5 text-ivory/20" />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Actions */}
           {!showReject ? (
