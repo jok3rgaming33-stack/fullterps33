@@ -243,18 +243,22 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
         fd.append("token", token)
         fd.append("kind", kind)
         const res = await fetch("/api/verification/upload", { method: "POST", body: fd })
-        if (!res.ok) throw new Error(`Upload ${kind} échoué`)
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body?.error ?? `Upload ${kind} échoué (${res.status})`)
+        }
         const data = await res.json()
+        if (!data.pathname) throw new Error(`Réponse upload ${kind} invalide`)
         return data.pathname as string
       }
       const [photoPathname, videoPathname] = await Promise.all([upload(photo, "photo"), upload(video, "video")])
       const saved = await submitVerification({ token, photoPathname, videoPathname })
       if (!saved.ok) { setVerifError(saved.error ?? "Échec de l'enregistrement."); return }
       setShowVerif(false)
-      // Passe la commande maintenant que la vérification est soumise
       await placeOrder()
-    } catch {
-      setVerifError("Échec de l'envoi des fichiers. Réessaie.")
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Échec de l'envoi des fichiers."
+      setVerifError(msg)
     } finally {
       setVerifPending(false)
     }

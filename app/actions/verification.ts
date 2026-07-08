@@ -52,7 +52,6 @@ export async function submitVerification(input: {
   }
   try {
     const id = nanoid()
-    console.log("[v0] submitVerification — token:", t.slice(0, 12), "photo:", input.photoPathname?.slice(0, 40), "video:", input.videoPathname?.slice(0, 40))
     await sql`
       insert into user_verifications (id, user_token, photo_pathname, video_pathname, status)
       values (${id}, ${t}, ${input.photoPathname}, ${input.videoPathname}, 'pending')
@@ -63,10 +62,8 @@ export async function submitVerification(input: {
         validated_at = null,
         rejection_reason = null
     `
-    console.log("[v0] submitVerification — OK, id:", id)
     return { ok: true }
   } catch (err) {
-    console.error("[v0] submitVerification — ERROR:", err instanceof Error ? err.message : err)
     return { ok: false, error: err instanceof Error ? err.message : "Erreur" }
   }
 }
@@ -152,6 +149,8 @@ export async function listPendingVerifications(): Promise<VerificationRow[]> {
       from user_verifications uv
       join users u on u.token = uv.user_token
       where uv.status = 'pending'
+        and uv.photo_pathname is not null
+        and uv.video_pathname is not null
       order by uv.created_at asc
     `
     return rows as unknown as VerificationRow[]

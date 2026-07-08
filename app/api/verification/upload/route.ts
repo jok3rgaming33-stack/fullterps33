@@ -15,11 +15,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifie que le token correspond à un compte réel
-    console.log("[v0] upload — token:", token?.slice(0, 12), "kind:", kind, "size:", file?.size)
     const rows = await sql`select id from users where token = ${token} limit 1`
-    console.log("[v0] upload — user found:", rows.length > 0)
     if (rows.length === 0) {
-      console.error("[v0] upload — token not found in users table:", token?.slice(0, 16))
       return NextResponse.json({ error: "Compte introuvable." }, { status: 401 })
     }
 
