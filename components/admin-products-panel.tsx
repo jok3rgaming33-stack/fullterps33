@@ -298,12 +298,8 @@ function MediaGallery({ media, onChange }: { media: string[]; onChange: (urls: s
 function VariantsEditor({ variants, onChange }: { variants: ProductVariant[]; onChange: (v: ProductVariant[]) => void }) {
   // États string locaux pour les champs prix — un par variante
   const [priceInputs, setPriceInputs] = useState<string[]>(
-    () => variants.map((v) => (v.price ? (v.price / 100).toFixed(2) : ""))
+    () => variants.map((v) => (v.price ? String(Math.round(v.price / 100)) : ""))
   )
-
-  function syncPriceInputs(newVariants: ProductVariant[]) {
-    setPriceInputs(newVariants.map((v) => (v.price ? (v.price / 100).toFixed(2) : "")))
-  }
 
   function add() {
     const next = [...variants, { qty: 0, price: 0, label: "" }]
@@ -334,12 +330,12 @@ function VariantsEditor({ variants, onChange }: { variants: ProductVariant[]; on
   }
 
   function commitPrice(i: number, raw: string) {
-    const n = parseFloat(raw.replace(",", "."))
-    const cents = isNaN(n) ? 0 : Math.round(n * 100)
-    const formatted = isNaN(n) ? "" : n.toFixed(2)
+    const n = parseInt(raw.replace(",", ".").replace(".", ""))
+    const euros = isNaN(n) ? 0 : Math.abs(n)
+    const formatted = isNaN(n) ? "" : String(euros)
     setPriceInputs((p) => p.map((v, idx) => (idx === i ? formatted : v)))
     const next = [...variants]
-    next[i] = { ...next[i], price: cents }
+    next[i] = { ...next[i], price: euros * 100 }
     onChange(next)
   }
 
@@ -412,8 +408,6 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
       section: initial.section,
     } : EMPTY
   )
-  // État string local pour les champs prix — évite la conversion centimes/euros à chaque frappe
-  const [priceInput, setPriceInput] = useState(initial?.price ? (initial.price / 100).toFixed(2) : "")
   const [discountInput, setDiscountInput] = useState(initial?.discount_value != null ? String(initial.discount_value) : "")
   const [sizesInput, setSizesInput] = useState(initial?.sizes?.join(", ") ?? "")
   const [error, setError] = useState("")
@@ -433,8 +427,9 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
     setError("")
     const payload: ProductInput = {
       ...form,
-      price: Math.round(parseFloat(priceInput.replace(",", ".") || "0") * 100),
-      discount_value: discountInput ? parseFloat(discountInput.replace(",", ".")) || null : null,
+      // prix de base = première variante, sinon 0
+      price: form.variants?.[0]?.price ?? 0,
+      discount_value: discountInput ? parseInt(discountInput) || null : null,
       sizes: sizesInput.split(",").map((s) => s.trim()).filter(Boolean),
       image: form.image || null,
     }
@@ -470,23 +465,8 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
           onChange={(e) => set("description", e.target.value)} placeholder="Description du produit…" />
       </div>
 
-      {/* Prix / Stock / Statut / Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="label-admin">Prix de base (€)</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            className="input-admin"
-            value={priceInput}
-            onChange={(e) => setPriceInput(e.target.value)}
-            onBlur={(e) => {
-              const n = parseFloat(e.target.value.replace(",", "."))
-              if (!isNaN(n)) setPriceInput(n.toFixed(2))
-            }}
-            placeholder="0.00"
-          />
-        </div>
+      {/* Stock / Statut / Section */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="flex flex-col gap-1">
           <label className="label-admin">Stock</label>
           <input type="number" min="0" className="input-admin"
@@ -528,8 +508,8 @@ function ProductForm({ initial, onSave, onCancel }: { initial?: Product; onSave:
               value={discountInput}
               onChange={(e) => setDiscountInput(e.target.value)}
               onBlur={(e) => {
-                const n = parseFloat(e.target.value.replace(",", "."))
-                if (!isNaN(n)) setDiscountInput(String(n))
+                const n = parseInt(e.target.value)
+                if (!isNaN(n)) setDiscountInput(String(Math.abs(n)))
               }}
               placeholder="0"
             />
