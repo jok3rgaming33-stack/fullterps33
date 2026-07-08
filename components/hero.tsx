@@ -46,7 +46,7 @@ export function Hero() {
           {/* Boutons d'action mis à jour */}
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
-              href="#capsule"
+              href="#vedette"
               className="clip-tag bg-violet-electric px-8 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void shadow-glow transition hover:brightness-110 text-center min-w-[160px]"
             >
               "NOTRE MENU"

@@ -22,7 +22,7 @@ export default async function HomePage() {
         {/* On ajoute 'as any' pour contourner le blocage de type sur Vercel */}
         <ProductSection
           config={{
-            category: "capsule",
+            category: "vedette",
             eyebrow: "En vedette",
             title: "Notre Menu",
             gridCols: "md:grid-cols-4",
