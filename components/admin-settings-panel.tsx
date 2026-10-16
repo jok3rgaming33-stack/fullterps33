@@ -13,6 +13,7 @@ import {
 } from "@/app/actions/settings"
 import { broadcastPush } from "@/app/actions/push"
 import { useRouter } from "next/navigation"
+import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
 
 const NEWS_TYPES = ["info", "warning", "alert", "promo"] as const
 const NEWS_TYPE_META = {
@@ -52,18 +53,18 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   const [pushFb, setPushFb]       = useState<string | null>(null)
 
   // Textes du site
-  const [heroEyebrow,    setHeroEyebrow]    = useState<string>(settings.hero_eyebrow    ?? "Édition Capsule — Automne")
-  const [heroBody,       setHeroBody]       = useState<string>(settings.hero_body       ?? "Coupes larges, matières lourdes, silhouette orage. Le streetwear pensé pour la rue, la nuit, et ce qui gronde au-dessus.")
-  const [heroCtaLabel,   setHeroCtaLabel]   = useState<string>(settings.hero_cta_label  ?? "Voir la collection")
-  const [footerTagline,  setFooterTagline]  = useState<string>(settings.footer_tagline  ?? "Que de la foudre la famille.")
-  const [footerCopyright,setFooterCopyright]= useState<string>(settings.footer_copyright ?? `© ${new Date().getFullYear()} HEISENWEB — Tous droits réservés`)
-  const [siteName,            setSiteName]            = useState<string>(settings.site_name             ?? "FULLTERPS33")
-  const [navLabelCapsule,     setNavLabelCapsule]     = useState<string>(settings.nav_label_capsule      ?? "Édition Capsule")
-  const [navLabelNouveautes,  setNavLabelNouveautes]  = useState<string>(settings.nav_label_nouveautes   ?? "Nouveautés")
-  const [secCapsuleEyebrow,   setSecCapsuleEyebrow]   = useState<string>(settings.section_capsule_eyebrow  ?? "En vedette")
-  const [secCapsuleTitle,     setSecCapsuleTitle]     = useState<string>(settings.section_capsule_title    ?? "Édition Capsule")
-  const [secNouveautesEyebrow,setSecNouveautesEyebrow]= useState<string>(settings.section_nouveautes_eyebrow ?? "Fraîchement débarqué")
-  const [secNouveautesTitle,  setSecNouveautesTitle]  = useState<string>(settings.section_nouveautes_title   ?? "Nouveautés")
+  const [heroEyebrow,    setHeroEyebrow]    = useState<string>(publicText(settings.hero_eyebrow, HERO_EYEBROW))
+  const [heroBody,       setHeroBody]       = useState<string>(publicText(settings.hero_body, HERO_BODY))
+  const [heroCtaLabel,   setHeroCtaLabel]   = useState<string>(publicText(settings.hero_cta_label, HERO_CTA))
+  const [footerTagline,  setFooterTagline]  = useState<string>(publicText(settings.footer_tagline, FOOTER_TAGLINE))
+  const [footerCopyright,setFooterCopyright]= useState<string>(publicText(settings.footer_copyright, `© ${new Date().getFullYear()} ${BRAND_NAME} — Tous droits réservés`))
+  const [siteName,            setSiteName]            = useState<string>(publicText(settings.site_name, BRAND_NAME))
+  const [navLabelCapsule,     setNavLabelCapsule]     = useState<string>(publicText(settings.nav_label_capsule, "Les classiques"))
+  const [navLabelNouveautes,  setNavLabelNouveautes]  = useState<string>(publicText(settings.nav_label_nouveautes, "Nouveautés"))
+  const [secCapsuleEyebrow,   setSecCapsuleEyebrow]   = useState<string>(publicText(settings.section_capsule_eyebrow, "En vedette"))
+  const [secCapsuleTitle,     setSecCapsuleTitle]     = useState<string>(publicText(settings.section_capsule_title, "Les classiques"))
+  const [secNouveautesEyebrow,setSecNouveautesEyebrow]= useState<string>(publicText(settings.section_nouveautes_eyebrow, "Arrivages"))
+  const [secNouveautesTitle,  setSecNouveautesTitle]  = useState<string>(publicText(settings.section_nouveautes_title, "Nouveautés"))
   const [siteTextsFb,         setSiteTextsFb]         = useState<string | null>(null)
 
   function saveSiteTexts() {
@@ -90,14 +91,18 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
 
   // Boutique
   const [shopOpen, setShopOpen]       = useState<boolean>(settings.shop_open ?? true)
-  const [shopMsg, setShopMsg]         = useState<string>(settings.shop_message ?? "")
+  const [shopMsg, setShopMsg]         = useState<string>(publicText(settings.shop_message, ""))
 
   // Créneaux livraison
   const [slots, setSlots] = useState<string[]>(settings.delivery_slots ?? [])
   const [newSlot, setNewSlot] = useState("")
 
   // Modes livraison
-  const [modes, setModes] = useState<string[]>(settings.delivery_modes ?? [])
+  const [modes, setModes] = useState<string[]>(
+    ((settings.delivery_modes as string[] | undefined) ?? ["Livraison", "Retrait boutique"]).map((m) =>
+      /meet-?up/i.test(m) ? "Retrait boutique" : m,
+    ),
+  )
   const [newMode, setNewMode] = useState("")
 
   // News
@@ -421,10 +426,10 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
             </div>
           ))}
         </div>
-        {/* Créneaux meet-up */}
+        {/* Créneaux de retrait */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Créneaux meet-up</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Créneaux de retrait</p>
             <button onClick={addMeetupSlot} className="flex items-center gap-1 font-mono text-[10px] text-violet-electric hover:underline">
               <Plus className="h-3 w-3" /> Ajouter
             </button>
@@ -476,7 +481,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
             value={newMode}
             onChange={(e) => setNewMode(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addMode()}
-            placeholder="Ex: Meet-up Bordeaux"
+            placeholder="Ex: Retrait boutique"
             className="flex-1 bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60"
           />
           <button onClick={addMode} disabled={pending}

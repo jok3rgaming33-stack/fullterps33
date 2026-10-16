@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { getSetting } from "@/app/actions/settings"
+import { AGE_NOTE, BRAND_NAME, FOOTER_TAGLINE, publicText } from "@/lib/brand"
 
 export async function Footer() {
   const [tagline, copyright, siteName] = await Promise.all([
@@ -8,22 +9,20 @@ export async function Footer() {
     getSetting("site_name"),
   ])
 
-  const footerTagline   = (tagline   as string | null) ?? "Que de la foudre la famille."
-  const footerCopyright = (copyright as string | null) ?? `© ${new Date().getFullYear()} HEISENWEB — Tous droits réservés`
-  const name            = (siteName  as string | null) ?? "FULLTERPS33"
-  const [namePart, suffix] = name.length > 2
-    ? [name.slice(0, -2), name.slice(-2)]
-    : [name, ""]
+  const footerTagline   = publicText(tagline, FOOTER_TAGLINE)
+  const footerCopyright = publicText(copyright, `© ${new Date().getFullYear()} ${BRAND_NAME} — Tous droits réservés`)
+  const name            = publicText(siteName, BRAND_NAME)
 
   return (
     <footer className="border-t border-white/10 bg-void">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-12 md:flex-row md:justify-between">
         <div>
-          <span className="font-display text-lg tracking-wide">
-            {namePart}<span className="text-violet-electric">{suffix}</span>
-          </span>
+          <span className="font-display text-lg tracking-wide">{name}</span>
           <p className="mt-2 max-w-xs font-mono text-xs text-ivory/40">
             {footerTagline}
+          </p>
+          <p className="mt-2 max-w-xs font-mono text-[10px] leading-relaxed text-ivory/30">
+            {AGE_NOTE}
           </p>
         </div>
 

@@ -2,11 +2,14 @@ import type { Product } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 import { listProducts } from "@/app/actions/products"
 import type { ShopSection } from "@/app/actions/settings"
+import { isForbiddenCopy, publicText } from "@/lib/brand"
 
 export async function ProductSection({ config }: { config: ShopSection }) {
-  const items = await listProducts(config.slug)
-  const eyebrow = config.eyebrow
-  const title   = config.title
+  const items = (await listProducts(config.slug)).filter(
+    (p) => !isForbiddenCopy(`${p.name} ${p.description ?? ""} ${p.category}`),
+  )
+  const eyebrow = publicText(config.eyebrow, "En vedette")
+  const title   = publicText(config.title, "Les classiques")
 
   return (
     <section id={config.slug} className="mx-auto max-w-[1200px] px-4 py-16">
@@ -20,7 +23,7 @@ export async function ProductSection({ config }: { config: ShopSection }) {
           </h2>
         </div>
         <span className="hidden font-mono text-xs text-ivory/40 md:block">
-          {items.length} pièces
+          {items.length} produits
         </span>
       </div>
 

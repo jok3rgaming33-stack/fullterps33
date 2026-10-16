@@ -17,17 +17,17 @@ const STEPS = [
   {
     icon: MessageSquare,
     title: 'Finalise la commande',
-    body: 'Valide ton panier. Un fil de discussion s\'ouvre pour chaque commande — coordonne livraison ou meet-up directement avec nous.',
+    body: 'Valide ton panier. Un fil de discussion s\'ouvre pour chaque commande afin de confirmer la livraison ou le retrait.',
   },
   {
     icon: Zap,
-    title: 'Livraison ou meet-up',
-    body: 'Choisis ton mode : livraison à domicile, meet-up ou click & collect. Les créneaux disponibles sont affichés à la commande.',
+    title: 'Livraison ou retrait',
+    body: 'Choisis la livraison à domicile ou le retrait. Les créneaux disponibles sont affichés à la commande. Réservé aux 18 ans et plus.',
   },
   {
     icon: Star,
     title: 'Gagne des points',
-    body: '1 point par euro dépensé. Monte en palier (Éclair → Orage → Tempête → Ouragan) et débloque des avantages exclusifs.',
+    body: '1 point par euro dépensé. Les paliers débloquent des avantages sur les prochaines commandes.',
   },
 ]
 

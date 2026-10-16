@@ -258,7 +258,7 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
         <div style="display:inline-block;background:${u.color};color:#fff;font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;margin-bottom:6px">${escapeHtml(u.label)}</div>
         <div><b>Produits :</b> ${escapeHtml(t.products ?? "—")}</div>
         <div><b>Montant :</b> ${t.total ?? 0}€</div>
-        <div><b>Mode :</b> ${t.fulfillment === "meetup" ? "Meet-up" : "Livraison"}</div>
+        <div><b>Mode :</b> ${t.fulfillment === "meetup" ? "Retrait" : "Livraison"}</div>
         <div><b>Points :</b> +${pts}</div>
         <div><b>Commandes client :</b> ${count}</div>
         <div><b>Adresse :</b> ${escapeHtml(t.address ?? "—")}</div>

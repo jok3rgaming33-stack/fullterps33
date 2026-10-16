@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { registerUser, loginWithToken } from '@/app/actions/auth'
 import { loginAdmin } from '@/app/actions/admin'
 import { HowItWorksModal } from '@/components/how-it-works-modal'
+import { AGE_NOTE, BRAND_NAME } from '@/lib/brand'
 
 type Tab = 'create' | 'login'
 
@@ -80,7 +81,7 @@ export default function SignupPage() {
                 <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#B355FF" />
               </svg>
             </div>
-            <h1 className="font-display text-4xl tracking-wider mb-2">FULLTERPS33</h1>
+            <h1 className="font-display text-4xl tracking-wider mb-2">{BRAND_NAME}</h1>
             <div className="h-px w-16 bg-violet-electric/60 mx-auto mb-3" />
             <p className="font-mono text-xs text-ivory/40 uppercase tracking-widest">
               Accès membres
@@ -124,7 +125,8 @@ export default function SignupPage() {
                           'Pseudo unique généré automatiquement',
                           'TOKEN sécurisé (64 caractères)',
                           '1 compte par IP par mois',
-                          'Points de fidélité offerts dès le premier ordre',
+                          'Points de fidélité offerts dès la première commande',
+                          'Vente réservée aux 18 ans et plus',
                         ].map((item) => (
                           <li key={item} className="flex gap-2 items-start">
                             <span className="text-violet-electric mt-0.5">▸</span>
@@ -221,6 +223,9 @@ export default function SignupPage() {
           <div className="mt-4 flex justify-center">
             <HowItWorksModal />
           </div>
+          <p className="mt-4 text-center font-mono text-[10px] leading-relaxed text-ivory/40">
+            {AGE_NOTE}
+          </p>
       </main>
     </>
   )

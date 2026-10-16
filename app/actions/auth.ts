@@ -99,7 +99,7 @@ export async function registerUser(): Promise<AuthResult> {
 
     return {
       ok: true,
-      message: 'Bienvenue dans FULLTERPS33!',
+      message: 'Bienvenue chez BRUMÉCO.',
       token,
       pseudo
     }

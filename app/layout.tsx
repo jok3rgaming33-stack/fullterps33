@@ -24,13 +24,9 @@ const jbmono = JetBrains_Mono({
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "FULLTERPS33 — Plug de qualité depuis 2021",
-  description: "FULLTERPS33 — Plug de qualité depuis 2021. Orage urbain, éclairs violets.",
-  icons: {
-    icon: "/images/logomini.png",
-    apple: "/images/logomini.png",
-    shortcut: "/images/logomini.png",
-  },
+  title: "BRUMÉCO — E-liquides éco-durables",
+  description:
+    "E-boutique d'e-liquides pour cigarette électronique. Flacons rechargeables, formules suivies. Réservé aux 18 ans et plus.",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -142,7 +142,7 @@ export function AdminOrdersPanel({ orders: initialOrders }: { orders: Order[] })
             {o.fulfillment && (
               <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-ivory/50">
                 <MapPin className="h-3 w-3" />
-                {o.fulfillment === "meetup" ? "Meetup" : "Livraison"}
+                {o.fulfillment === "meetup" ? "Retrait" : "Livraison"}
               </span>
             )}
             {o.scheduledDate && (

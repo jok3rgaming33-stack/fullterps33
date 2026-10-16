@@ -7,7 +7,7 @@ const ADJECTIVES = [
 ]
 
 const NOUNS = [
-  'Terps', 'Pulse', 'Strike', 'Force', 'Spirit', 'Vortex', 'Surge', 'Matrix',
+  'Brume', 'Pulse', 'Strike', 'Force', 'Spirit', 'Vortex', 'Surge', 'Matrix',
   'Nexus', 'Flux', 'Zephyr', 'Typhoon', 'Raptor', 'Kraken', 'Sphinx', 'Dragon',
   'Raven', 'Falcon', 'Eagle', 'Panther', 'Viper', 'Scarab', 'Phoenix', 'Spectral'
 ]

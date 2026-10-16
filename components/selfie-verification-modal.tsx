@@ -278,7 +278,7 @@ export function SelfieVerificationModal({ onComplete, onCancel, submitting = fal
             <p className="font-mono text-xs uppercase tracking-widest text-ivory/60">Vidéo selfie ({MIN_SECONDS}-{MAX_SECONDS}s)</p>
           </div>
           <p className="font-mono text-[11px] text-ivory/40">
-            Dis clairement : &quot;Je confirme ma commande sur FULLTERPS33&quot;
+            Dis clairement : &quot;Je confirme ma commande sur BRUMÉCO&quot;
           </p>
           {!videoFile ? (
             <div className="flex gap-2">

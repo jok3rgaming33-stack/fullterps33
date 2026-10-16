@@ -93,7 +93,7 @@ export function OrderThreadModal({ orderId, onClose }: Props) {
                 <div key={msg.id} className={`flex ${isClient ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[75%] px-4 py-2.5 font-mono text-sm leading-relaxed ${isClient ? "bg-violet-electric/20 text-ivory ring-1 ring-violet-electric/30" : "bg-surface/80 text-ivory/80 ring-1 ring-white/10"}`}>
                     {!isClient && (
-                      <p className="mb-1 text-[9px] uppercase tracking-widest text-violet-electric/70">FULLTERPS33</p>
+                      <p className="mb-1 text-[9px] uppercase tracking-widest text-violet-electric/70">BRUMÉCO</p>
                     )}
                     <p>{msg.content}</p>
                     <p className="mt-1 text-[9px] text-ivory/30">

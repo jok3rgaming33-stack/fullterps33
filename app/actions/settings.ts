@@ -3,6 +3,7 @@
 import { sql } from "@/lib/db"
 import { isAdmin } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
+import { isForbiddenCopy, publicText } from "@/lib/brand"
 
 // ── Paramètres généraux ────────────────────────────────────────────────────
 
@@ -88,14 +89,18 @@ export type ShopSection = {
 }
 
 const DEFAULT_SECTIONS: ShopSection[] = [
-  { slug: "vedette",    eyebrow: "En vedette",          title: "Édition Capsule",       gridCols: "md:grid-cols-4" },
-  { slug: "nouveautes", eyebrow: "Fraîchement débarqués", title: "Nouveautés",           gridCols: "md:grid-cols-4" },
+  { slug: "vedette",    eyebrow: "En vedette", title: "Les classiques", gridCols: "md:grid-cols-4" },
+  { slug: "nouveautes", eyebrow: "Arrivages",  title: "Nouveautés",     gridCols: "md:grid-cols-4" },
 ]
 
 export async function getShopSections(): Promise<ShopSection[]> {
   const row = await getSetting("shop_sections")
   if (!row || !Array.isArray(row) || row.length === 0) return DEFAULT_SECTIONS
-  return row as ShopSection[]
+  return (row as ShopSection[]).map((sec) => ({
+    ...sec,
+    eyebrow: publicText(sec.eyebrow, "En vedette"),
+    title: publicText(sec.title, "Les classiques"),
+  }))
 }
 
 export async function setShopSections(sections: ShopSection[]): Promise<{ ok: boolean; error?: string }> {
@@ -142,6 +147,7 @@ export async function getActivePopup(): Promise<NewsItem | null> {
   `
   if (rows.length === 0) return null
   const r = rows[0]
+  if (isForbiddenCopy(`${r.title ?? ""} ${r.body ?? ""}`)) return null
   return { id: r.id, title: r.title, body: r.body, type: r.type, active: r.active, popup: r.popup, createdAt: r.created_at }
 }
 

@@ -1,65 +1,55 @@
 import Link from "next/link"
-import Image from "next/image"
+import { getSetting } from "@/app/actions/settings"
+import { BRAND_NAME, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
 
-export function Hero() {
+export async function Hero() {
+  const [eyebrow, body, cta, siteName] = await Promise.all([
+    getSetting("hero_eyebrow"),
+    getSetting("hero_body"),
+    getSetting("hero_cta_label"),
+    getSetting("site_name"),
+  ])
+
   return (
     <section className="relative min-h-[80vh] md:min-h-screen w-full overflow-hidden border-b border-white/10 flex items-center">
-      {/* Vidéo en arrière-plan plein écran */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover object-center z-0"
-      >
-        <source src="/images/bgvid.mp4" type="video/mp4" />
-        Votre navigateur ne supporte pas les vidéos HTML5.
-      </video>
+      <div
+        className="absolute inset-0 z-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/images/hero-still.jpg)" }}
+        role="img"
+        aria-label="Flacons d'e-liquide et feuillage"
+      />
 
-      {/* Gradients de transition pour garantir la lisibilité du texte sur la vidéo */}
-      <div className="absolute inset-0 bg-gradient-to-t from-void via-void/40 to-void/70 z-10" />
-      <div className="absolute inset-0 bg-gradient-to-r from-void/80 via-transparent to-void/40 z-10 hidden md:block" />
+      <div className="absolute inset-0 bg-gradient-to-t from-void via-void/55 to-void/75 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-void/85 via-void/35 to-void/20 z-10 hidden md:block" />
 
-      {/* Conteneur unique du contenu aligné proprement à gauche */}
       <div className="relative z-20 mx-auto w-full max-w-[1200px] px-6 py-12 md:py-24 flex flex-col justify-center">
-        
-        {/* Logo principal réactif */}
-        <div className="relative h-[70px] w-[240px] sm:w-[320px] md:h-[130px] md:w-[480px] mb-4 md:mb-6">
-          <Image 
-            src="/images/hero-logo.png" 
-            alt="FULLTERPS33" 
-            fill 
-            className="object-contain object-left" 
-            priority 
-          />
-        </div>
+        <p className="font-display text-5xl tracking-wide text-ivory sm:text-6xl md:text-7xl mb-4 md:mb-6">
+          {publicText(siteName, BRAND_NAME)}
+        </p>
 
-        {/* Bloc d'informations mis à jour avec les textes de la capture d'écran */}
         <div className="max-w-xl">
           <span className="mb-3 block font-mono text-xs uppercase tracking-[0.35em] text-violet-electric font-bold">
-            "TON PLUG BORDELAIS DEPUIS 2021"
+            {publicText(eyebrow, HERO_EYEBROW)}
           </span>
           <p className="font-body text-sm md:text-base leading-relaxed text-ivory/80 drop-shadow-md">
-            On te propose uniquement des produits de qualité aux meilleurs prix. Livraison rapide, meet-up.
+            {publicText(body, HERO_BODY)}
           </p>
 
-          {/* Boutons d'action mis à jour */}
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
               href="#vedette"
               className="clip-tag bg-violet-electric px-8 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void shadow-glow transition hover:brightness-110 text-center min-w-[160px]"
             >
-              "NOTRE MENU"
+              {publicText(cta, HERO_CTA)}
             </Link>
             <Link
               href="#nouveautes"
               className="border border-white/20 bg-void/40 backdrop-blur-sm px-8 py-3 font-mono text-xs uppercase tracking-[0.2em] text-ivory/80 transition hover:border-violet-electric hover:text-violet-electric text-center min-w-[160px]"
             >
-              NOUVEAUTÉS
+              Nouveautés
             </Link>
           </div>
         </div>
-
       </div>
     </section>
   )

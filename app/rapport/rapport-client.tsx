@@ -201,9 +201,9 @@ export function RapportClient({ stats, date }: Props) {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="bg-violet-600 text-white font-black text-xl px-3 py-1.5 tracking-widest">
-                    FT33
+                    BRUM
                   </div>
-                  <span className="text-gray-400 font-mono text-sm">FULLTERPS33</span>
+                  <span className="text-gray-400 font-mono text-sm">BRUMÉCO</span>
                 </div>
                 <h1 className="text-3xl font-black text-gray-900 tracking-tight mt-4">
                   Rapport d&apos;avancement
@@ -313,7 +313,7 @@ export function RapportClient({ stats, date }: Props) {
 
           {/* Pied de page */}
           <div className="mt-12 pt-6 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400 font-mono">
-            <span>FULLTERPS33 — Document confidentiel</span>
+            <span>BRUMÉCO — Document confidentiel</span>
             <span>Généré le {date}</span>
           </div>
         </div>

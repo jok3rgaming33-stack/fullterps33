@@ -12,9 +12,10 @@ type UserData = { pseudo?: string; token?: string } | null
 interface Props {
   links: NavLink[]
   userData?: UserData
+  siteName: string
 }
 
-export function NavbarClient({ links, userData }: Props) {
+export function NavbarClient({ links, userData, siteName }: Props) {
   const { totalCount, openCart } = useCart()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -28,7 +29,7 @@ export function NavbarClient({ links, userData }: Props) {
             </svg>
           </span>
           <span className="font-display text-lg tracking-wide text-ivory">
-            FULLTERPS<span className="text-violet-electric">33</span>
+            {siteName}
           </span>
         </Link>
 

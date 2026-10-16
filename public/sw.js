@@ -1,7 +1,7 @@
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {}
   event.waitUntil(
-    self.registration.showNotification(data.title || 'FULLTERPS33', {
+    self.registration.showNotification(data.title || 'BRUMÉCO', {
       body: data.body || '',
       icon: data.icon || '/icon-192.png',
       badge: data.badge || '/icon-192.png',

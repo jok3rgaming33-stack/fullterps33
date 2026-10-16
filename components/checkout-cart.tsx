@@ -385,7 +385,7 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
                     className={`flex items-center justify-center gap-2 border py-2.5 font-mono text-xs uppercase tracking-wide transition ${isMeetup ? "border-violet-electric bg-violet-electric/10 text-violet-electric" : "border-white/15 text-ivory/50"}`}
                   >
                     <Users className="h-4 w-4" />
-                    Meet-up
+                    Retrait
                   </button>
                 </div>
                 {!deliveryAllowed && (

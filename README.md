@@ -1,7 +1,7 @@
-# FULLTERPS33 — Streetwear
+# BRUMÉCO — E-liquides éco-durables
 
-Site e-commerce streetwear, Next.js 14 (App Router) + TypeScript + Tailwind CSS,
-avec base de données Postgres (produits, comptes clients, codes promo, commandes).
+Base e-commerce pour une e-boutique d'e-liquides (cigarette électronique), Next.js 14 (App Router) + TypeScript + Tailwind CSS,
+avec base de données Postgres (produits, comptes clients, codes promo, commandes). Vente réservée aux 18 ans et plus.
 
 ## 1. Créer la base de données (Neon, gratuit)
 

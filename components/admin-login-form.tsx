@@ -52,7 +52,7 @@ export function AdminLoginForm() {
             <Zap className="h-7 w-7 text-violet-electric animate-flicker" />
           </div>
           <div>
-            <h1 className="font-display text-3xl tracking-widest text-ivory">FULLTERPS33</h1>
+            <h1 className="font-display text-3xl tracking-widest text-ivory">BRUMÉCO</h1>
             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-ivory/40">
               Panel Administration
             </p>
