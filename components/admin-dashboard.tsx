@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin, Gift } from "lucide-react"
+import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin, Gift, BookOpen } from "lucide-react"
 import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
@@ -18,10 +18,12 @@ import { AdminSectionsPanel } from "@/components/admin-sections-panel"
 import { AdminNotificationBell } from "@/components/admin-notification-bell"
 import { AdminClientPreview } from "@/components/admin-client-preview"
 import { AdminLoyaltyPanel } from "@/components/admin-loyalty-panel"
+import { AdminRulesPanel } from "@/components/admin-rules-panel"
 import type { AdminUser } from "@/app/actions/account"
 import type { LoyaltyTier } from "@/app/actions/loyalty"
 import type { OrderThread } from "@/app/actions/messaging"
 import type { NewsItem, CartConfig, ShopSection } from "@/app/actions/settings"
+import type { SiteRule } from "@/lib/site-rules"
 import type { VerificationRow } from "@/app/actions/verification"
 import { formatPrice } from "@/lib/utils"
 
@@ -56,6 +58,7 @@ interface AdminDashboardProps {
     issuedTo: string | null; usedBy: string | null
     active: boolean; createdAt: string
   }[]
+  rules?: SiteRule[]
 }
 
 const TABS = [
@@ -69,12 +72,13 @@ const TABS = [
   { id: "promos",     label: "Codes",     icon: Zap           },
   { id: "loyalty",    label: "Fidélité",  icon: Gift          },
   { id: "users",      label: "Membres",   icon: Users         },
+  { id: "rules",      label: "Modalités", icon: BookOpen      },
   { id: "settings",   label: "Réglages",  icon: Settings      },
 ] as const
 
 type TabId = typeof TABS[number]["id"]
 
-export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [], sections = [], loyaltyTiers = [], rewardCodes = [] }: AdminDashboardProps) {
+export function AdminDashboard({ products, promos, orders, users = [], threads = [], appSettings = {}, news = [], cartConfig, verifications = [], sections = [], loyaltyTiers = [], rewardCodes = [], rules = [] }: AdminDashboardProps) {
   const [active, setActive] = useState<TabId>("overview")
   const router = useRouter()
 
@@ -316,6 +320,13 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
                 )}
               </h2>
               <AdminVerificationsPanel initial={verifications} />
+            </div>
+          )}
+
+          {active === "rules" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">Modalités</h2>
+              <AdminRulesPanel initial={rules} />
             </div>
           )}
 

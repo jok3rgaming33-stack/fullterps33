@@ -1,32 +1,62 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { registerUser, loginWithToken } from '@/app/actions/auth'
 import { loginAdmin } from '@/app/actions/admin'
 import { HowItWorksModal } from '@/components/how-it-works-modal'
+import { SiteRulesModal } from '@/components/site-rules-modal'
+import { useSiteRules } from '@/components/site-rules-context'
 import { useSignupBrand } from '@/components/signup-brand'
 import { AGE_NOTE } from '@/lib/brand'
+import { siteRulesVersion } from '@/lib/site-rules'
+
+const RULES_STORAGE_KEY = 'ft33_rules_ok'
 
 type Tab = 'create' | 'login'
 
 export default function SignupPage() {
   const router = useRouter()
   const siteName = useSignupBrand()
+  const rules = useSiteRules()
+  const rulesVersion = siteRulesVersion(rules)
+  const mustRead = rules.length > 0
   const [tab, setTab] = useState<Tab>('create')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ pseudo: string; token: string } | null>(null)
   const [tokenInput, setTokenInput] = useState('')
+  const [rulesOpen, setRulesOpen] = useState(false)
+  const [rulesAccepted, setRulesAccepted] = useState(false)
+
+  useEffect(() => {
+    setRulesAccepted(window.localStorage.getItem(RULES_STORAGE_KEY) === rulesVersion)
+  }, [rulesVersion])
+
+  const acceptRules = () => {
+    window.localStorage.setItem(RULES_STORAGE_KEY, rulesVersion)
+    setRulesAccepted(true)
+    setRulesOpen(false)
+  }
 
   const handleCreate = async () => {
+    if (mustRead && !rulesAccepted) {
+      setError('Lis et accepte les modalités du site avant de créer un compte.')
+      setRulesOpen(true)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const res = await registerUser()
+      const res = await registerUser(mustRead ? rulesVersion : undefined)
       if (res.ok && res.token && res.pseudo) {
         setResult({ pseudo: res.pseudo, token: res.token })
       } else {
+        if (res.message.includes('modalités')) {
+          setRulesAccepted(false)
+          setRulesOpen(true)
+          router.refresh()
+        }
         setError(res.message)
       }
     } catch (err) {
@@ -149,13 +179,40 @@ export default function SignupPage() {
                       </div>
                     )}
 
-                    <button
-                      onClick={handleCreate}
-                      disabled={loading}
-                      className="clip-tag w-full bg-violet-electric py-3.5 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-50"
-                    >
-                      {loading ? 'Création en cours...' : 'Créer mon compte'}
-                    </button>
+                    {mustRead && !rulesAccepted ? (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setRulesOpen(true)}
+                          className="clip-tag w-full bg-violet-electric py-3.5 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110"
+                        >
+                          Lire les modalités avant de continuer
+                        </button>
+                        <p className="text-center font-mono text-[10px] leading-relaxed text-ivory/40">
+                          La création du compte sera déverrouillée après avoir ouvert chaque partie et accepté.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={handleCreate}
+                          disabled={loading}
+                          className="clip-tag w-full bg-violet-electric py-3.5 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-50"
+                        >
+                          {loading ? 'Création en cours...' : 'Créer mon compte'}
+                        </button>
+                        {mustRead && (
+                          <button
+                            type="button"
+                            onClick={() => setRulesOpen(true)}
+                            className="w-full py-1 font-mono text-[10px] uppercase tracking-widest text-ivory/40 hover:text-violet-electric"
+                          >
+                            Relire les modalités
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -228,6 +285,14 @@ export default function SignupPage() {
           )}
 
           {/* Aide + mention légale, sous la carte */}
+          <SiteRulesModal
+            rules={rules}
+            open={rulesOpen}
+            requireRead={mustRead && !rulesAccepted}
+            onClose={() => setRulesOpen(false)}
+            onAccept={acceptRules}
+          />
+
           <div className="mt-6 flex flex-col items-center gap-4 lg:items-start">
             <HowItWorksModal />
             <p className="max-w-md text-center font-mono text-[10px] leading-relaxed text-ivory/40 lg:text-left">

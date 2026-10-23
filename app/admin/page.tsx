@@ -6,7 +6,7 @@ import { listPromoCodes } from "@/app/actions/promo"
 import { listAllOrders } from "@/app/actions/orders"
 import { listAdminUsers } from "@/app/actions/account"
 import { listAllThreads } from "@/app/actions/messaging"
-import { getAllSettings, listNews, getCartConfig, getShopSections } from "@/app/actions/settings"
+import { getAllSettings, listNews, getCartConfig, getShopSections, getEditableSiteRules } from "@/app/actions/settings"
 import { listPendingVerifications } from "@/app/actions/verification"
 import { getLoyaltyTiers } from "@/app/actions/loyalty"
 import { sql } from "@/lib/db"
@@ -17,7 +17,7 @@ export default async function AdminPage() {
   const admin = await isAdmin()
   if (!admin) return <AdminLoginForm />
 
-  const [products, promos, orders, users, threads, appSettings, news, cartConfig, verifications, sections, loyaltyTiers, rewardCodeRows] = await Promise.all([
+  const [products, promos, orders, users, threads, appSettings, news, cartConfig, verifications, sections, loyaltyTiers, rules, rewardCodeRows] = await Promise.all([
     listProducts(),
     listPromoCodes(),
     listAllOrders(),
@@ -29,6 +29,7 @@ export default async function AdminPage() {
     listPendingVerifications(),
     getShopSections(),
     getLoyaltyTiers(),
+    getEditableSiteRules(),
     sql`
       SELECT pc.code, pc.value as discount_euros, lt.label,
              pc.issued_to_token, pc.used_by_token, pc.active, pc.created_at
@@ -64,6 +65,7 @@ export default async function AdminPage() {
       sections={sections}
       loyaltyTiers={loyaltyTiers}
       rewardCodes={rewardCodes}
+      rules={rules}
     />
   )
 }

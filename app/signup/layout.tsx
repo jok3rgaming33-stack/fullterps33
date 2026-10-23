@@ -1,6 +1,7 @@
-import { getSetting } from "@/app/actions/settings"
+import { getPublicSiteRules, getSetting } from "@/app/actions/settings"
 import { HeroStorm } from "@/components/hero-storm"
 import { SignupBrandProvider } from "@/components/signup-brand"
+import { SiteRulesProvider } from "@/components/site-rules-context"
 import { StormBackground } from "@/components/storm-background"
 import { BRAND_NAME, publicText } from "@/lib/brand"
 
@@ -23,7 +24,7 @@ export default async function SignupLayout({
 }: {
   children: React.ReactNode
 }) {
-  const name = await signupName()
+  const [name, rules] = await Promise.all([signupName(), getPublicSiteRules()])
   return (
     <div className="relative min-h-screen overflow-hidden bg-void">
       <StormBackground />
@@ -31,7 +32,9 @@ export default async function SignupLayout({
       <div className="pointer-events-none absolute inset-0 bg-void/55 lg:bg-transparent lg:bg-gradient-to-r lg:from-void/80 lg:via-void/45 lg:to-void/10" />
       <HeroStorm variant="signup" />
       <div className="relative z-20">
-        <SignupBrandProvider name={name}>{children}</SignupBrandProvider>
+        <SignupBrandProvider name={name}>
+          <SiteRulesProvider rules={rules}>{children}</SiteRulesProvider>
+        </SignupBrandProvider>
       </div>
     </div>
   )

@@ -4,6 +4,8 @@ import { sql } from '@/lib/db'
 import { generatePseudo, generateToken, getClientIP } from '@/lib/user-generator'
 import { headers } from 'next/headers'
 import { setCustomerSession } from '@/lib/auth'
+import { getPublicSiteRules } from '@/app/actions/settings'
+import { siteRulesVersion } from '@/lib/site-rules'
 
 export interface AuthResult {
   ok: boolean
@@ -42,8 +44,13 @@ export async function checkIPLimit(ip: string): Promise<{ canRegister: boolean; 
 /**
  * Register a new user with auto-generated pseudo and token
  */
-export async function registerUser(): Promise<AuthResult> {
+export async function registerUser(acceptedVersion?: string): Promise<AuthResult> {
   try {
+    const rules = await getPublicSiteRules()
+    if (rules.length > 0 && acceptedVersion !== siteRulesVersion(rules)) {
+      return { ok: false, message: "Lis et accepte les modalités du site avant de créer un compte." }
+    }
+
     // Get client IP from headers
     const headersList = await headers()
     const xForwardedFor = headersList.get('x-forwarded-for')

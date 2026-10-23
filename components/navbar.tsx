@@ -18,6 +18,7 @@ export async function Navbar({ userData }: { userData?: UserData }) {
     { href: "/#vedette",    label: text(capsule, "Les classiques") },
     { href: "/#nouveautes", label: text(nouveautes, "Nouveautés") },
     { href: "/compte",      label: "Mon Compte" },
+    { href: "/modalites",   label: "Modalités" },
   ]
 
   return <NavbarClient links={links} userData={userData} siteName={text(siteName, BRAND_NAME)} />

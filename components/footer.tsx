@@ -40,6 +40,7 @@ export async function Footer() {
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
             <span className="mb-1 text-ivory/30">Compte</span>
             <Link href="/compte" className="hover:text-violet-electric">Mon Compte</Link>
+            <Link href="/modalites" className="hover:text-violet-electric">Modalités</Link>
           </div>
         </div>
       </div>

@@ -4,6 +4,13 @@ import { sql } from "@/lib/db"
 import { isAdmin } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { isForbiddenCopy, publicText } from "@/lib/brand"
+import {
+  SITE_RULES_KEY,
+  normalizeSiteRules,
+  publicSiteRules,
+  readStoredRules,
+  type SiteRule,
+} from "@/lib/site-rules"
 
 // ── Paramètres généraux ────────────────────────────────────────────────────
 
@@ -225,6 +232,35 @@ export async function saveSiteTextsAction(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("[settings] saveSiteTextsAction error:", msg)
+    return { ok: false, error: msg }
+  }
+}
+
+// ── Modalités lues à l'inscription ─────────────────────────────────────────
+
+/** Texte publié (formulations interdites retirées). Tableau vide = rien à lire. */
+export async function getPublicSiteRules(): Promise<SiteRule[]> {
+  const { rules } = readStoredRules(await getSetting(SITE_RULES_KEY))
+  return publicSiteRules(rules)
+}
+
+/** Brouillon admin, y compris une liste volontairement vide. */
+export async function getEditableSiteRules(): Promise<SiteRule[]> {
+  const { rules } = readStoredRules(await getSetting(SITE_RULES_KEY))
+  return rules
+}
+
+export async function saveSiteRules(rules: SiteRule[]): Promise<{ ok: boolean; error?: string }> {
+  if (!await isAdmin()) return { ok: false, error: "Non autorisé" }
+  const clean = normalizeSiteRules(rules)
+  if (clean.length !== rules.length) {
+    return { ok: false, error: "Chaque partie doit avoir un titre et un texte." }
+  }
+  try {
+    await setSetting(SITE_RULES_KEY, { sections: clean })
+    return { ok: true }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
     return { ok: false, error: msg }
   }
 }
