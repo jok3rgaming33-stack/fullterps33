@@ -91,15 +91,15 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-display text-lg leading-tight tracking-wide text-ivory">{product.name}</h3>
+      <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4">
+        <div className="flex flex-col items-start gap-1 xl:flex-row xl:justify-between xl:gap-2">
+          <div className="min-w-0">
+            <h3 className="break-words font-display text-base leading-tight tracking-wide text-ivory sm:text-lg">{product.name}</h3>
             <p className="font-mono text-[11px] uppercase tracking-widest text-ivory/40">{product.sku}</p>
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="mt-0.5 shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-violet-electric/70 underline underline-offset-2 transition hover:text-violet-electric"
+            className="shrink-0 py-1 font-mono text-[10px] xl:mt-0.5 xl:py-0 uppercase tracking-[0.12em] text-violet-electric/70 underline underline-offset-2 transition hover:text-violet-electric"
           >
             + d&apos;infos
           </button>

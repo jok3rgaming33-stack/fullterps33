@@ -21,7 +21,7 @@ export function NavbarClient({ links, userData, siteName }: Props) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-void/90 backdrop-blur">
-      <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4">
+      <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-full border border-violet-electric/50 bg-surface">
             <svg width="18" height="24" viewBox="0 0 46 64" fill="none">
@@ -61,7 +61,7 @@ export function NavbarClient({ links, userData, siteName }: Props) {
             )}
           </button>
           <button
-            className="md:hidden"
+            className="-mr-2 p-2 md:hidden"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Ouvrir le menu"
           >
@@ -71,13 +71,13 @@ export function NavbarClient({ links, userData, siteName }: Props) {
       </div>
 
       {mobileOpen && (
-        <nav className="flex flex-col gap-1 border-t border-white/10 bg-void px-4 py-3 md:hidden">
+        <nav className="flex flex-col gap-1 border-t border-white/10 bg-void px-4 py-2 sm:px-6 md:hidden">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setMobileOpen(false)}
-              className="py-2 font-mono text-xs uppercase tracking-[0.2em] text-ivory/70"
+              className="py-3 font-mono text-xs uppercase tracking-[0.2em] text-ivory/70"
             >
               {l.label}
             </Link>

@@ -56,7 +56,14 @@ function makeBolt(w: number, h: number, now: number): Bolt {
   return { paths, born: now, life: rand(500, 800), seed: Math.random() }
 }
 
-export function HeroStorm() {
+const CHARACTER_POSITION = {
+  // Hero : sous le texte en mobile/tablette (espace réservé par le hero), à droite en desktop
+  hero: "absolute bottom-0 left-1/2 w-[min(80vw,420px)] -translate-x-1/2 lg:bottom-auto lg:left-auto lg:right-[4%] lg:top-1/2 lg:w-[40vw] lg:max-w-[600px] lg:translate-x-0 lg:-translate-y-1/2",
+  // Signup : uniquement en desktop, colonne de droite (le mobile affiche un visuel en tête de carte)
+  signup: "absolute right-[5%] top-1/2 hidden w-[38vw] max-w-[560px] -translate-y-1/2 lg:block",
+} as const
+
+export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACTER_POSITION }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const flashRef = useRef<HTMLDivElement>(null)
@@ -186,7 +193,7 @@ export function HeroStorm() {
       <div ref={flashRef} className="storm-flash absolute inset-0" />
 
       {/* Personnage : buste encagoulé, sans accessoire */}
-      <div className="absolute bottom-0 right-[-8%] w-[78vw] max-w-[620px] opacity-60 sm:right-[-2%] sm:w-[60vw] sm:opacity-80 md:right-[4%] md:top-1/2 md:bottom-auto md:w-[44vw] md:-translate-y-1/2 md:opacity-100">
+      <div className={CHARACTER_POSITION[variant]}>
         <div className="storm-halo absolute inset-[12%] rounded-full" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

@@ -64,25 +64,30 @@ export default function SignupPage() {
 
   return (
     <>
-      <main className="grain relative min-h-[85vh] flex items-center justify-center px-4 py-16">
-        {/* Éclairs décoratifs */}
-        <svg className="pointer-events-none absolute left-8 top-20 opacity-10" width="40" height="60" viewBox="0 0 46 64" fill="none">
-          <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#B355FF" />
-        </svg>
-        <svg className="pointer-events-none absolute right-12 bottom-24 opacity-10 rotate-12" width="28" height="44" viewBox="0 0 46 64" fill="none">
-          <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#B355FF" />
-        </svg>
-
-        <div className="relative z-10 w-full max-w-md">
-          {/* Header */}
-          <div className="mb-8 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full border border-violet-electric/40 bg-surface mb-4">
+      <main className="mx-auto grid min-h-screen w-full max-w-[1200px] grid-cols-1 items-center px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-2 lg:gap-12">
+        <div className="mx-auto w-full max-w-md lg:mx-0">
+          {/* En-tête */}
+          <div className="mb-8 text-center lg:text-left">
+            {/* Visuel personnage en mobile/tablette (en desktop il occupe la colonne de droite) */}
+            <div className="relative mx-auto mb-2 w-40 sm:w-48 lg:hidden">
+              <div className="storm-halo absolute inset-[12%] rounded-full" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/hero-character.svg"
+                alt=""
+                width={660}
+                height={660}
+                className="storm-character relative h-auto w-full select-none"
+                draggable={false}
+              />
+            </div>
+            <div className="mb-4 hidden h-14 w-14 items-center justify-center rounded-full border border-violet-electric/40 bg-surface lg:inline-flex">
               <svg width="22" height="30" viewBox="0 0 46 64" fill="none">
                 <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#B355FF" />
               </svg>
             </div>
-            <h1 className="font-display text-4xl tracking-wider mb-2">{BRAND_NAME}</h1>
-            <div className="h-px w-16 bg-violet-electric/60 mx-auto mb-3" />
+            <h1 className="font-display text-4xl tracking-wider mb-2 sm:text-5xl">{BRAND_NAME}</h1>
+            <div className="mx-auto mb-3 h-px w-16 bg-violet-electric/60 lg:mx-0" />
             <p className="font-mono text-xs text-ivory/40 uppercase tracking-widest">
               Accès membres
             </p>
@@ -94,7 +99,7 @@ export default function SignupPage() {
               <div className="flex border-b border-white/10">
                 <button
                   onClick={() => { setTab('create'); setError(null) }}
-                  className={`flex-1 py-3 font-mono text-xs uppercase tracking-[0.15em] transition ${
+                  className={`flex-1 min-h-[48px] py-3 font-mono text-xs uppercase tracking-[0.15em] transition ${
                     tab === 'create'
                       ? 'text-violet-electric border-b-2 border-violet-electric bg-violet-electric/5'
                       : 'text-ivory/40 hover:text-ivory/70'
@@ -104,7 +109,7 @@ export default function SignupPage() {
                 </button>
                 <button
                   onClick={() => { setTab('login'); setError(null) }}
-                  className={`flex-1 py-3 font-mono text-xs uppercase tracking-[0.15em] transition ${
+                  className={`flex-1 min-h-[48px] py-3 font-mono text-xs uppercase tracking-[0.15em] transition ${
                     tab === 'login'
                       ? 'text-violet-electric border-b-2 border-violet-electric bg-violet-electric/5'
                       : 'text-ivory/40 hover:text-ivory/70'
@@ -114,7 +119,7 @@ export default function SignupPage() {
                 </button>
               </div>
 
-              <div className="p-8 space-y-6">
+              <div className="p-5 space-y-6 sm:p-8">
                 {/* Onglet Création */}
                 {tab === 'create' && (
                   <>
@@ -145,7 +150,7 @@ export default function SignupPage() {
                     <button
                       onClick={handleCreate}
                       disabled={loading}
-                      className="clip-tag w-full bg-violet-electric py-3 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-50"
+                      className="clip-tag w-full bg-violet-electric py-3.5 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-50"
                     >
                       {loading ? 'Création en cours...' : 'Créer mon compte'}
                     </button>
@@ -178,7 +183,7 @@ export default function SignupPage() {
                     <button
                       onClick={handleLogin}
                       disabled={loading || !tokenInput.trim()}
-                      className="clip-tag w-full bg-violet-electric py-3 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-50"
+                      className="clip-tag w-full bg-violet-electric py-3.5 font-mono text-sm font-bold uppercase tracking-[0.15em] text-void transition hover:brightness-110 disabled:opacity-50"
                     >
                       {loading ? 'Connexion...' : 'Se connecter'}
                     </button>
@@ -188,7 +193,7 @@ export default function SignupPage() {
             </div>
           ) : (
             /* Résultat création */
-            <div className="clip-card border border-white/10 bg-surface/40 backdrop-blur-sm p-8 space-y-5">
+            <div className="clip-card border border-white/10 bg-surface/40 backdrop-blur-sm p-5 space-y-5 sm:p-8">
               <div className="text-center mb-2">
                 <p className="font-mono text-xs text-violet-electric uppercase tracking-widest">Compte créé</p>
                 <h2 className="font-display text-3xl tracking-wider mt-1">{result.pseudo}</h2>
@@ -219,13 +224,15 @@ export default function SignupPage() {
               </a>
             </div>
           )}
-        </div>
-          <div className="mt-4 flex justify-center">
+
+          {/* Aide + mention légale, sous la carte */}
+          <div className="mt-6 flex flex-col items-center gap-4 lg:items-start">
             <HowItWorksModal />
+            <p className="max-w-md text-center font-mono text-[10px] leading-relaxed text-ivory/40 lg:text-left">
+              {AGE_NOTE}
+            </p>
           </div>
-          <p className="mt-4 text-center font-mono text-[10px] leading-relaxed text-ivory/40">
-            {AGE_NOTE}
-          </p>
+        </div>
       </main>
     </>
   )

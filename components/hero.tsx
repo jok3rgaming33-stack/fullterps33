@@ -13,20 +13,20 @@ export async function Hero() {
   ])
 
   return (
-    <section className="relative min-h-[80vh] md:min-h-screen w-full overflow-hidden border-b border-white/10 flex items-center">
+    <section className="relative flex w-full items-center overflow-hidden border-b border-white/10 lg:min-h-[calc(100vh-69px)]">
       <StormBackground className="z-0" />
 
       <div className="absolute inset-0 bg-gradient-to-t from-void via-void/55 to-void/75 z-10" />
-      <div className="absolute inset-0 bg-gradient-to-r from-void/85 via-void/35 to-void/20 z-10 hidden md:block" />
+      <div className="absolute inset-0 bg-gradient-to-r from-void/85 via-void/35 to-void/20 z-10 hidden lg:block" />
 
       <HeroStorm />
 
-      <div className="relative z-20 mx-auto w-full max-w-[1200px] px-6 py-12 md:py-24 flex flex-col justify-center">
-        <p className="font-display text-5xl tracking-wide text-ivory sm:text-6xl md:text-7xl mb-4 md:mb-6">
+      <div className="relative z-20 mx-auto flex w-full max-w-[1200px] flex-col justify-center px-4 pb-[calc(min(80vw,420px)*0.95+1.5rem)] pt-12 sm:px-6 sm:pt-16 lg:py-24">
+        <p className="mb-4 font-display text-5xl tracking-wide text-ivory sm:text-6xl lg:mb-6 lg:text-7xl">
           {publicText(siteName, BRAND_NAME)}
         </p>
 
-        <div className="max-w-xl">
+        <div className="max-w-xl lg:max-w-[46%]">
           <span className="mb-3 block font-mono text-xs uppercase tracking-[0.35em] text-violet-electric font-bold">
             {publicText(eyebrow, HERO_EYEBROW)}
           </span>
@@ -34,7 +34,7 @@ export async function Hero() {
             {publicText(body, HERO_BODY)}
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-4">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link
               href="#vedette"
               className="clip-tag bg-violet-electric px-8 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void shadow-glow transition hover:brightness-110 text-center min-w-[160px]"

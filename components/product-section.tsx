@@ -12,7 +12,7 @@ export async function ProductSection({ config }: { config: ShopSection }) {
   const title   = publicText(config.title, "Les classiques")
 
   return (
-    <section id={config.slug} className="mx-auto max-w-[1200px] px-4 py-16">
+    <section id={config.slug} className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 sm:py-16">
       <div className="mb-8 flex items-end justify-between border-b border-white/10 pb-4">
         <div>
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-violet-electric">
@@ -32,7 +32,7 @@ export async function ProductSection({ config }: { config: ShopSection }) {
           Aucun produit pour l'instant. Ajoutez-en depuis le panel admin.
         </p>
       ) : (
-        <div className={`grid gap-5 grid-cols-2 ${config.gridCols}`}>
+        <div className={`grid grid-cols-2 gap-3 sm:gap-5 ${config.gridCols}`}>
           {items.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}

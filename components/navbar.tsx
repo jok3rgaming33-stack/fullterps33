@@ -12,7 +12,7 @@ export async function Navbar({ userData }: { userData?: UserData }) {
   ])
 
   const links = [
-    { href: "/#capsule",    label: publicText(capsule, "Les classiques") },
+    { href: "/#vedette",    label: publicText(capsule, "Les classiques") },
     { href: "/#nouveautes", label: publicText(nouveautes, "Nouveautés") },
     { href: "/compte",      label: "Mon Compte" },
   ]

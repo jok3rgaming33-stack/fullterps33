@@ -38,7 +38,7 @@ export function HowItWorksModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="clip-tag border border-violet-electric/40 bg-violet-electric/10 px-5 py-2 font-mono text-xs uppercase tracking-widest text-violet-electric transition hover:bg-violet-electric/20"
+        className="clip-tag border border-violet-electric/40 bg-violet-electric/10 px-6 py-3 font-mono text-xs uppercase tracking-widest text-violet-electric transition hover:bg-violet-electric/20"
       >
         Comment ça marche ?
       </button>

@@ -16,12 +16,10 @@ export default function SignupLayout({
   return (
     <div className="relative min-h-screen overflow-hidden bg-void">
       <StormBackground />
-      <div className="pointer-events-none absolute inset-0 opacity-40">
-        <HeroStorm />
-      </div>
-      {/* Overlay sombre pour lisibilité */}
-      <div className="pointer-events-none absolute inset-0 bg-void/60" />
-      <div className="relative z-10">
+      {/* Assombrit le fond côté formulaire (gauche en desktop, partout en mobile) */}
+      <div className="pointer-events-none absolute inset-0 bg-void/55 lg:bg-transparent lg:bg-gradient-to-r lg:from-void/80 lg:via-void/45 lg:to-void/10" />
+      <HeroStorm variant="signup" />
+      <div className="relative z-20">
         {children}
       </div>
     </div>
