@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
 import { createPromoCode, deletePromoCode, type PromoCode } from "@/app/actions/promo"
+import { notifyAdminChange } from "@/lib/admin-events"
 
 const emptyForm = { code: "", type: "percent" as "percent" | "fixed", value: "", minAmount: "0", active: true }
 
@@ -24,6 +25,7 @@ export function AdminPromosPanel({ promos }: { promos: PromoCode[] }) {
     }
     startTransition(async () => {
       await createPromoCode({ code: form.code.trim(), type: form.type, value, minAmount, active: form.active })
+      notifyAdminChange("promos")
       setForm(emptyForm)
       router.refresh()
     })
@@ -32,6 +34,7 @@ export function AdminPromosPanel({ promos }: { promos: PromoCode[] }) {
   function handleDelete(code: string) {
     startTransition(async () => {
       await deletePromoCode(code)
+      notifyAdminChange("promos")
       router.refresh()
     })
   }

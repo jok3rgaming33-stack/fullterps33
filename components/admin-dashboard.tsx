@@ -16,6 +16,7 @@ import { AdminVerificationsPanel } from "@/components/admin-verifications"
 import { AdminMap } from "@/components/admin-map"
 import { AdminSectionsPanel } from "@/components/admin-sections-panel"
 import { AdminNotificationBell } from "@/components/admin-notification-bell"
+import { AdminClientPreview } from "@/components/admin-client-preview"
 import { AdminLoyaltyPanel } from "@/components/admin-loyalty-panel"
 import type { AdminUser } from "@/app/actions/account"
 import type { LoyaltyTier } from "@/app/actions/loyalty"
@@ -92,7 +93,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-void text-ivory">
+    <div className="flex min-h-screen flex-col bg-void text-ivory lg:pr-[var(--admin-preview-w,0px)]">
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-surface/60 backdrop-blur-md">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
@@ -109,6 +110,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
           </div>
 
           <div className="flex items-center gap-4">
+            <AdminClientPreview />
             <AdminNotificationBell />
             <button
               onClick={handleLogout}

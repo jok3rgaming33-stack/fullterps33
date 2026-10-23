@@ -5,6 +5,7 @@ import { Plus, Trash2, GripVertical, Pencil, Check, X, ChevronDown, ChevronRight
 import { setShopSections, type ShopSection } from "@/app/actions/settings"
 import { removeProductFromSection } from "@/app/actions/products"
 import type { Product } from "@/lib/types"
+import { notifyAdminChange } from "@/lib/admin-events"
 
 type Props = {
   initial: ShopSection[]
@@ -54,6 +55,7 @@ export function AdminSectionsPanel({ initial, products = [] }: Props) {
       if (result.ok) {
         setSections(next)
         fb("Sections sauvegardées")
+        notifyAdminChange("sections")
       } else {
         fb(`Erreur : ${result.error ?? "inconnue"}`)
       }
@@ -111,6 +113,7 @@ export function AdminSectionsPanel({ initial, products = [] }: Props) {
       if (r.ok) {
         setLocalProducts((prev) => prev.map((p) => p.id === productId ? { ...p, section: "" } : p))
         fb("Produit retiré de la section")
+        notifyAdminChange("sections")
       } else {
         fb(`Erreur : ${r.error}`)
       }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { BlobMedia } from "@/components/blob-media"
 import type { ShopSection } from "@/app/actions/settings"
+import { notifyAdminChange } from "@/lib/admin-events"
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -436,7 +437,7 @@ function ProductForm({ initial, onSave, onCancel, sections = [] }: { initial?: P
       const res = initial
         ? await updateProduct(initial.id, payload)
         : await createProduct(payload)
-      if (res.ok) onSave()
+      if (res.ok) { notifyAdminChange("products"); onSave() }
       else setError(res.message ?? "Erreur")
     })
   }
@@ -595,6 +596,7 @@ function ProductRow({ product, onEdit, onDeleted }: { product: Product; onEdit: 
     if (!confirming) { setConfirming(true); return }
     startTransition(async () => {
       await deleteProduct(product.id)
+      notifyAdminChange("products")
       onDeleted()
     })
   }

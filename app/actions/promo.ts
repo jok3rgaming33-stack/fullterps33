@@ -63,11 +63,13 @@ export async function createPromoCode(input: PromoCode) {
     on conflict (code) do update set
       type = excluded.type, value = excluded.value, min_amount = excluded.min_amount, active = excluded.active
   `
+  revalidatePath("/")
   revalidatePath("/admin")
 }
 
 export async function deletePromoCode(code: string) {
   if (!await isAdmin()) throw new Error("Non autorisé")
   await sql`delete from promo_codes where code = ${code}`
+  revalidatePath("/")
   revalidatePath("/admin")
 }

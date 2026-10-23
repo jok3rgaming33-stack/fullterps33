@@ -14,6 +14,7 @@ import {
 import { broadcastPush } from "@/app/actions/push"
 import { useRouter } from "next/navigation"
 import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
+import { notifyAdminChange } from "@/lib/admin-events"
 
 const NEWS_TYPES = ["info", "warning", "alert", "promo"] as const
 const NEWS_TYPE_META = {
@@ -83,6 +84,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
         setSetting("section_nouveautes_eyebrow",  secNouveautesEyebrow),
         setSetting("section_nouveautes_title",    secNouveautesTitle),
       ])
+      notifyAdminChange("settings")
       setSiteTextsFb("Textes sauvegardés")
       setTimeout(() => setSiteTextsFb(null), 2500)
       router.refresh()
@@ -115,6 +117,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   function save(key: string, value: any) {
     startTransition(async () => {
       await setSetting(key, value)
+      notifyAdminChange("settings")
       router.refresh()
     })
   }
@@ -151,6 +154,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
     if (!newTitle.trim() || !newBody.trim()) return
     startTransition(async () => {
       await createNews({ title: newTitle.trim(), body: newBody.trim(), type: newType, active: true, popup: newPopup })
+      notifyAdminChange("news")
       setNewTitle("")
       setNewBody("")
       setNewPopup(false)
@@ -162,6 +166,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
     setNews((prev) => prev.map((n) => n.id === id ? { ...n, [field]: val } : n))
     startTransition(async () => {
       await updateNews(id, { [field]: val })
+      notifyAdminChange("news")
     })
   }
 
@@ -169,6 +174,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
     setNews((prev) => prev.filter((n) => n.id !== id))
     startTransition(async () => {
       await deleteNews(id)
+      notifyAdminChange("news")
     })
   }
 
@@ -176,6 +182,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   function saveCartConfig() {
     startTransition(async () => {
       await setCartConfig(config)
+      notifyAdminChange("cart")
       setLogisticsFb("Configuration sauvegardée")
       setTimeout(() => setLogisticsFb(null), 2500)
     })
