@@ -1,5 +1,7 @@
 import Link from "next/link"
 import { getSetting } from "@/app/actions/settings"
+import { HeroStorm } from "@/components/hero-storm"
+import { StormBackground } from "@/components/storm-background"
 import { BRAND_NAME, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
 
 export async function Hero() {
@@ -12,15 +14,12 @@ export async function Hero() {
 
   return (
     <section className="relative min-h-[80vh] md:min-h-screen w-full overflow-hidden border-b border-white/10 flex items-center">
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center"
-        style={{ backgroundImage: "url(/images/hero-still.jpg)" }}
-        role="img"
-        aria-label="Flacons d'e-liquide et feuillage"
-      />
+      <StormBackground className="z-0" />
 
       <div className="absolute inset-0 bg-gradient-to-t from-void via-void/55 to-void/75 z-10" />
       <div className="absolute inset-0 bg-gradient-to-r from-void/85 via-void/35 to-void/20 z-10 hidden md:block" />
+
+      <HeroStorm />
 
       <div className="relative z-20 mx-auto w-full max-w-[1200px] px-6 py-12 md:py-24 flex flex-col justify-center">
         <p className="font-display text-5xl tracking-wide text-ivory sm:text-6xl md:text-7xl mb-4 md:mb-6">
