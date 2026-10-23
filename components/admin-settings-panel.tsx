@@ -44,6 +44,21 @@ const DEFAULT_CONFIG: CartConfig = {
   ],
 }
 
+// Défini au niveau du module (et non dans le rendu du panneau) : un composant
+// recréé à chaque rendu change d'identité, React démonte/remonte alors tout son
+// contenu à chaque frappe et le champ en cours d'édition perd le focus.
+function Section({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-white/10 bg-surface/40 p-5 space-y-4">
+      <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+        <Icon className="h-4 w-4 text-violet-electric" />
+        <h3 className="font-mono text-xs uppercase tracking-widest">{title}</h3>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: initialConfig }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -238,16 +253,6 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
       setTimeout(() => setPushFb(null), 3000)
     })
   }
-
-  const Section = ({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) => (
-    <div className="border border-white/10 bg-surface/40 p-5 space-y-4">
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-        <Icon className="h-4 w-4 text-violet-electric" />
-        <h3 className="font-mono text-xs uppercase tracking-widest">{title}</h3>
-      </div>
-      {children}
-    </div>
-  )
 
   return (
     <div className="space-y-6">
