@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { registerUser, loginWithToken } from '@/app/actions/auth'
 import { loginAdmin } from '@/app/actions/admin'
 import { HowItWorksModal } from '@/components/how-it-works-modal'
-import { AGE_NOTE, BRAND_NAME } from '@/lib/brand'
+import { useSignupBrand } from '@/components/signup-brand'
+import { AGE_NOTE } from '@/lib/brand'
 
 type Tab = 'create' | 'login'
 
 export default function SignupPage() {
   const router = useRouter()
+  const siteName = useSignupBrand()
   const [tab, setTab] = useState<Tab>('create')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +88,7 @@ export default function SignupPage() {
                 <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#B355FF" />
               </svg>
             </div>
-            <h1 className="font-display text-4xl tracking-wider mb-2 sm:text-5xl">{BRAND_NAME}</h1>
+            <h1 className="font-display text-4xl tracking-wider mb-2 sm:text-5xl">{siteName}</h1>
             <div className="mx-auto mb-3 h-px w-16 bg-violet-electric/60 lg:mx-0" />
             <p className="font-mono text-xs text-ivory/40 uppercase tracking-widest">
               Accès membres

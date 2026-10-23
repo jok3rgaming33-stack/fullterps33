@@ -1,19 +1,22 @@
 import Link from "next/link"
 import { getSetting } from "@/app/actions/settings"
-import { AGE_NOTE, BRAND_NAME, FOOTER_TAGLINE, publicText } from "@/lib/brand"
+import { isAdmin } from "@/lib/auth"
+import { AGE_NOTE, BRAND_NAME, FOOTER_TAGLINE, visibleShopText } from "@/lib/brand"
 
 export async function Footer() {
-  const [tagline, copyright, siteName, navCapsule, navNouveautes] = await Promise.all([
+  const [tagline, copyright, siteName, navCapsule, navNouveautes, admin] = await Promise.all([
     getSetting("footer_tagline"),
     getSetting("footer_copyright"),
     getSetting("site_name"),
     getSetting("nav_label_capsule"),
     getSetting("nav_label_nouveautes"),
+    isAdmin(),
   ])
+  const text = (value: unknown, fallback: string) => visibleShopText(value, fallback, admin)
 
-  const footerTagline   = publicText(tagline, FOOTER_TAGLINE)
-  const footerCopyright = publicText(copyright, `© ${new Date().getFullYear()} ${BRAND_NAME} — Tous droits réservés`)
-  const name            = publicText(siteName, BRAND_NAME)
+  const footerTagline   = text(tagline, FOOTER_TAGLINE)
+  const footerCopyright = text(copyright, `© ${new Date().getFullYear()} ${BRAND_NAME} — Tous droits réservés`)
+  const name            = text(siteName, BRAND_NAME)
 
   return (
     <footer className="border-t border-white/10 bg-void">
@@ -31,8 +34,8 @@ export async function Footer() {
         <div className="flex gap-12">
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
             <span className="mb-1 text-ivory/30">Boutique</span>
-            <Link href="/#vedette" className="hover:text-violet-electric">{publicText(navCapsule, "Les classiques")}</Link>
-            <Link href="/#nouveautes" className="hover:text-violet-electric">{publicText(navNouveautes, "Nouveautés")}</Link>
+            <Link href="/#vedette" className="hover:text-violet-electric">{text(navCapsule, "Les classiques")}</Link>
+            <Link href="/#nouveautes" className="hover:text-violet-electric">{text(navNouveautes, "Nouveautés")}</Link>
           </div>
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
             <span className="mb-1 text-ivory/30">Compte</span>

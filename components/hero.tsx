@@ -2,16 +2,19 @@ import Link from "next/link"
 import { getSetting } from "@/app/actions/settings"
 import { HeroStorm } from "@/components/hero-storm"
 import { StormBackground } from "@/components/storm-background"
-import { BRAND_NAME, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
+import { isAdmin } from "@/lib/auth"
+import { BRAND_NAME, HERO_BODY, HERO_CTA, HERO_EYEBROW, visibleShopText } from "@/lib/brand"
 
 export async function Hero() {
-  const [eyebrow, body, cta, siteName, navNouveautes] = await Promise.all([
+  const [eyebrow, body, cta, siteName, navNouveautes, admin] = await Promise.all([
     getSetting("hero_eyebrow"),
     getSetting("hero_body"),
     getSetting("hero_cta_label"),
     getSetting("site_name"),
     getSetting("nav_label_nouveautes"),
+    isAdmin(),
   ])
+  const text = (value: unknown, fallback: string) => visibleShopText(value, fallback, admin)
 
   return (
     <section className="relative flex w-full items-center overflow-hidden border-b border-white/10 lg:min-h-[calc(100vh-69px)]">
@@ -24,15 +27,15 @@ export async function Hero() {
 
       <div className="relative z-20 mx-auto flex w-full max-w-[1200px] flex-col justify-center px-4 pb-[calc(min(80vw,420px)*0.95+1.5rem)] pt-12 sm:px-6 sm:pt-16 lg:py-24">
         <p className="mb-4 font-display text-5xl tracking-wide text-ivory sm:text-6xl lg:mb-6 lg:text-7xl">
-          {publicText(siteName, BRAND_NAME)}
+          {text(siteName, BRAND_NAME)}
         </p>
 
         <div className="max-w-xl lg:max-w-[46%]">
           <span className="mb-3 block font-mono text-xs uppercase tracking-[0.35em] text-violet-electric font-bold">
-            {publicText(eyebrow, HERO_EYEBROW)}
+            {text(eyebrow, HERO_EYEBROW)}
           </span>
           <p className="font-body text-sm md:text-base leading-relaxed text-ivory/80 drop-shadow-md">
-            {publicText(body, HERO_BODY)}
+            {text(body, HERO_BODY)}
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
@@ -40,13 +43,13 @@ export async function Hero() {
               href="#vedette"
               className="clip-tag bg-violet-electric px-8 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void shadow-glow transition hover:brightness-110 text-center min-w-[160px]"
             >
-              {publicText(cta, HERO_CTA)}
+              {text(cta, HERO_CTA)}
             </Link>
             <Link
               href="#nouveautes"
               className="border border-white/20 bg-void/40 backdrop-blur-sm px-8 py-3 font-mono text-xs uppercase tracking-[0.2em] text-ivory/80 transition hover:border-violet-electric hover:text-violet-electric text-center min-w-[160px]"
             >
-              {publicText(navNouveautes, "Nouveautés")}
+              {text(navNouveautes, "Nouveautés")}
             </Link>
           </div>
         </div>

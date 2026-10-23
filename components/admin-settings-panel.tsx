@@ -92,8 +92,8 @@ function TextField({ label, value, onChange, fallback, multiline = false, wide =
       {replaced && (
         <p className="font-mono text-[10px] leading-relaxed text-signal" data-replaced-note>
           {value.trim()
-            ? <>Non affiché tel quel : la vitrine affichera « {shown} » (formulation remplacée ou interdite par la règle de marque).</>
-            : <>Champ vide : la vitrine affichera « {shown} ».</>}
+            ? <>Enregistré tel quel : l&apos;aperçu admin l&apos;affiche. Les visiteurs voient « {shown} » tant que cette formulation est ancienne ou interdite.</>
+            : <>Champ vide : l&apos;aperçu et les visiteurs affichent « {shown} ».</>}
         </p>
       )}
     </div>
@@ -165,9 +165,11 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
         const missing = res.missing ?? []
         notifyAdminChange("settings")
         setSiteTextsFb(
-          "Textes sauvegardés" +
+          "Textes enregistrés" +
           (missing.length ? ` — section(s) introuvable(s) : ${missing.join(", ")} (voir onglet Sections)` : "") +
-          (replaced.length ? ` — non affiché(s) tel quel en vitrine : ${replaced.join(", ")} (voir les notes sous les champs)` : ""),
+          (replaced.length
+            ? `. L'aperçu admin est à jour. Pas encore visibles pour les visiteurs : ${replaced.join(", ")}.`
+            : ". Ils sont visibles en vitrine."),
         )
         setTimeout(() => setSiteTextsFb(null), replaced.length || missing.length ? 10000 : 3000)
         router.refresh()

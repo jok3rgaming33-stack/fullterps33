@@ -37,14 +37,19 @@ const LEGACY: Record<string, string> = {
 const BANNED =
   /full\s*terps|fullterps|\bplug\b|meet-?up|foudre la famille|streetwear|bordelais|\bbeuh\b|\bweed\b|\bcannabis\b|\bmarijuana\b|\bkush\b|\bhaze\b|\bskunk\b|\bamnesia\b|\bgelato\b|\bruntz\b|\bpollen\b|r[ée]sine|\bshit\b|coca[iï]ne|\bmdma\b|\becsta|\bthc\b|\bhashish\b|\bhaschich\b|\bbarrette\b|\bsavonnette\b/i
 
-export function publicText(value: unknown, fallback: string): string {
+/** Texte affiché en vitrine. `showStored` (session admin) montre la valeur enregistrée telle quelle. */
+export function visibleShopText(value: unknown, fallback: string, showStored = false): string {
   if (typeof value !== "string") return fallback
   const trimmed = value.trim()
   if (!trimmed) return fallback
-  const mapped = LEGACY[trimmed.toLowerCase()]
-  if (mapped) return mapped
+  if (showStored) return trimmed
+  if (Object.prototype.hasOwnProperty.call(LEGACY, trimmed.toLowerCase())) return fallback
   if (BANNED.test(trimmed)) return fallback
   return trimmed
+}
+
+export function publicText(value: unknown, fallback: string): string {
+  return visibleShopText(value, fallback, false)
 }
 
 export function isForbiddenCopy(value: unknown): boolean {

@@ -123,11 +123,7 @@ const DEFAULT_SECTIONS: ShopSection[] = [
 export async function getShopSections(): Promise<ShopSection[]> {
   const row = await getSetting("shop_sections")
   if (!row || !Array.isArray(row) || row.length === 0) return DEFAULT_SECTIONS
-  return (row as ShopSection[]).map((sec) => ({
-    ...sec,
-    eyebrow: publicText(sec.eyebrow, "En vedette"),
-    title: publicText(sec.title, "Les classiques"),
-  }))
+  return row as ShopSection[]
 }
 
 export async function setShopSections(sections: ShopSection[]): Promise<{ ok: boolean; error?: string }> {
@@ -191,6 +187,10 @@ export async function saveSiteTextsAction(
           values (${key}, ${json}::text::jsonb, now())
           on conflict (key) do update set value = ${json}::text::jsonb, updated_at = now()
         `
+        const [check] = await tx`select value from app_settings where key = ${key}`
+        if (unwrapQuoted(check?.value) !== texts[key]) {
+          throw new Error(`Relecture échouée (${key})`)
+        }
       }
       if (headings.length) {
         const [row] = await tx`select value from app_settings where key = 'shop_sections' for update`
@@ -207,6 +207,16 @@ export async function saveSiteTextsAction(
           values ('shop_sections', ${json}::text::jsonb, now())
           on conflict (key) do update set value = ${json}::text::jsonb, updated_at = now()
         `
+        const [check] = await tx`select value from app_settings where key = 'shop_sections'`
+        const again = unwrapQuoted(check?.value)
+        if (!Array.isArray(again)) throw new Error("Relecture échouée (shop_sections)")
+        for (const h of headings) {
+          if (missing.includes(h.slug)) continue
+          const found = again.find((s: ShopSection) => s.slug === h.slug)
+          if (!found || found.eyebrow !== h.eyebrow || found.title !== h.title) {
+            throw new Error(`Relecture échouée (section ${h.slug})`)
+          }
+        }
       }
     })
     revalidatePath("/", "layout")

@@ -1,11 +1,12 @@
 import { getSetting } from "@/app/actions/settings"
-import { publicText } from "@/lib/brand"
+import { isAdmin } from "@/lib/auth"
+import { visibleShopText } from "@/lib/brand"
 
 /** Bandeau piloté par Réglages → « Statut boutique » (clés shop_open / shop_message). */
 export async function ShopStatusBanner() {
-  const [open, msg] = await Promise.all([getSetting("shop_open"), getSetting("shop_message")])
+  const [open, msg, admin] = await Promise.all([getSetting("shop_open"), getSetting("shop_message"), isAdmin()])
   const closed = open === false
-  const message = publicText(msg, "")
+  const message = visibleShopText(msg, "", admin)
   if (!closed && !message) return null
 
   return (
