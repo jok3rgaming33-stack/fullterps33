@@ -6,6 +6,8 @@ import { pointsForAmount } from "@/lib/loyalty"
 import { validatePromoCode } from "@/app/actions/promo"
 import { getVerificationStatus } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
+import { ensureMessagingSchema, updateThreadStatus } from "@/app/actions/messaging"
+import { normalizeStatus } from "@/lib/order-status"
 
 export type OrderItemInput = {
   productId: string
@@ -75,11 +77,13 @@ export async function listMyOrders() {
 
 export async function listAllOrders() {
   if (!await isAdmin()) throw new Error("Non autorisé")
+  await ensureMessagingSchema()
   // Les vraies commandes sont dans order_threads (créées par createOrderThread dans checkout-cart)
   const rows = await sql`
     select id, customer_name, summary, products, total, status, fulfillment,
            scheduled_date, scheduled_slot, address, created_at
     from order_threads
+    where status not in ('discussion', 'pris_en_charge', 'ouvert', 'ferme')
     order by created_at desc
     limit 200
   `
@@ -96,19 +100,13 @@ export async function listAllOrders() {
     scheduledSlot: r.scheduled_slot ?? "",
     address:       r.address ?? "",
     createdAt:     r.created_at,
+    tracking:      r.tracking && typeof r.tracking === "object" ? r.tracking : {},
   }))
 }
 
-const STATUSES = ["en_attente", "confirmee", "en_route", "livree", "annulee"] as const
-
 export async function updateOrderStatus(orderId: number, status: string) {
-  if (!await isAdmin()) throw new Error("Non autorisé")
-  if (!STATUSES.includes(status as (typeof STATUSES)[number])) {
-    throw new Error("Statut invalide")
-  }
-  await sql`update order_threads set status = ${status} where id = ${orderId}`
-  revalidatePath("/admin")
-  revalidatePath("/compte")
+  const result = await updateThreadStatus(orderId, normalizeStatus(status))
+  if (!result.ok) throw new Error(result.error ?? "Statut invalide")
 }
 
 export async function deleteOrder(orderId: number): Promise<{ ok: boolean }> {

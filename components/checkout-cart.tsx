@@ -185,7 +185,6 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
 
       const result = await createOrderThread({
         customerName: name,
-        customerToken: userData?.token,
         summary: `Commande de ${name} : ${summary}`,
         products: summary,
         total,
@@ -195,14 +194,15 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
         lng:  isMeetup ? undefined : coords?.lng,
         scheduledDate: date,
         scheduledSlot: isMeetup ? meetupHour : slot,
+        items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
       })
 
-      if (result) {
+      if (result.ok) {
         setPlaced(true)
         clear()
         onOrderPlaced?.(`Commande #${result.id} enregistrée ! Suis-la dans Messagerie.`)
       } else {
-        setSubmitError("Erreur lors de l'enregistrement, réessaie.")
+        setSubmitError(result.error)
       }
     } catch {
       setSubmitError("Une erreur est survenue.")
@@ -213,6 +213,10 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
 
   const handleValidate = async () => {
     if (!canValidate || submitting) return
+    if (!userData?.token) {
+      setSubmitError("Connecte-toi pour passer commande.")
+      return
+    }
     // Auto-géocodage si adresse saisie mais pas encore vérifiée
     if (!isMeetup && distanceKm == null && address.trim()) {
       await checkAddress()

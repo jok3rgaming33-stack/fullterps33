@@ -8,34 +8,43 @@ import {
   addMessage,
   updateThreadStatus,
   deleteThread,
+  deleteOwnMessages,
   type OrderThread,
   type ThreadMessage,
 } from "@/app/actions/messaging"
-import { statusMeta } from "@/lib/order-status"
+import { fulfillmentLabel, isDiscussionStatus, normalizeStatus, statusMeta, statusOptionsFor } from "@/lib/order-status"
+import { formatScheduledLabel } from "@/lib/order-timeline"
 import { formatPrice } from "@/lib/utils"
-
-const STATUS_OPTIONS = [
-  "en_attente",
-  "preparation",
-  "pret",
-  "en_route",
-  "livre",
-  "annule",
-  "discussion",
-]
+import { OrderTrackingCard } from "@/components/order-tracking-card"
+import { MessageBody } from "@/components/message-body"
+import { VoiceNoteButton } from "@/components/voice-note-button"
 
 export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
   const [threads, setThreads] = useState<OrderThread[]>(initial)
-  const [active, setActive]   = useState<OrderThread | null>(null)
+  const [active, setActive] = useState<OrderThread | null>(null)
   const [messages, setMessages] = useState<ThreadMessage[]>([])
-  const [input, setInput]       = useState("")
+  const [input, setInput] = useState("")
   const [confirmId, setConfirmId] = useState<number | null>(null)
+  const [picked, setPicked] = useState<number[]>([])
   const [pending, startTransition] = useTransition()
+  const [statusError, setStatusError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const activeId = active?.id ?? null
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages.length])
+
+  useEffect(() => {
+    if (activeId == null) return
+    const timer = setInterval(async () => {
+      const data = await getThreadById(activeId)
+      if (!data) return
+      setActive(data.thread)
+      setMessages(data.messages)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [activeId])
 
   function openThread(id: number) {
     startTransition(async () => {
@@ -43,21 +52,29 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
       if (data) {
         setActive(data.thread)
         setMessages(data.messages)
+        setPicked([])
         setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, unreadAdmin: 0 } : t)))
       }
     })
   }
 
-  function handleSend() {
-    if (!active || !input.trim()) return
-    const content = input.trim()
-    setInput("")
+  async function refreshActive(id: number) {
+    const data = await getThreadById(id)
+    if (data) {
+      setActive(data.thread)
+      setMessages(data.messages)
+    }
+    setThreads(await listAllThreads())
+  }
+
+  function handleSend(body?: string) {
+    if (!active) return
+    const content = (body ?? input).trim()
+    if (!content) return
+    if (!body) setInput("")
     startTransition(async () => {
       await addMessage(active.id, "vendeur", content)
-      const data = await getThreadById(active.id)
-      if (data) { setActive(data.thread); setMessages(data.messages) }
-      const all = await listAllThreads()
-      setThreads(all)
+      await refreshActive(active.id)
     })
   }
 
@@ -79,20 +96,34 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
     })
   }
 
+  function togglePicked(id: number) {
+    setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function handleDeleteMessages() {
+    if (!active || picked.length === 0) return
+    const id = active.id
+    startTransition(async () => {
+      await deleteOwnMessages(picked)
+      setPicked([])
+      await refreshActive(id)
+    })
+  }
+
   async function handleStatusChange(id: number, status: string) {
-    await updateThreadStatus(id, status)
-    const data = await getThreadById(id)
-    if (data) { setActive(data.thread); setMessages(data.messages) }
-    const all = await listAllThreads()
-    setThreads(all)
+    setStatusError(null)
+    const result = await updateThreadStatus(id, status)
+    if (!result.ok) {
+      setStatusError(result.error ?? "Statut refusé")
+      return
+    }
+    await refreshActive(id)
   }
 
   const totalUnread = threads.reduce((s, t) => s + t.unreadAdmin, 0)
 
   return (
     <div className="flex h-[calc(100vh-10rem)] overflow-hidden border border-white/10 bg-surface/20">
-
-      {/* Thread list */}
       <div className={`w-full shrink-0 border-r border-white/10 md:w-72 ${active ? "hidden md:flex md:flex-col" : "flex flex-col"}`}>
         <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
           <MessageSquare className="h-4 w-4 text-violet-electric" />
@@ -108,7 +139,7 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
           {threads.length === 0 ? (
             <p className="p-6 text-center font-mono text-xs text-ivory/30">Aucun fil de discussion.</p>
           ) : (
-              threads.map((t) => {
+            threads.map((t) => {
               const meta = statusMeta(t.status)
               const label = t.customerName ?? t.pseudo ?? (t.userToken ? t.userToken.slice(0, 8) : "—")
               return (
@@ -116,10 +147,7 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
                   key={t.id}
                   className={`group relative border-b border-white/5 transition hover:bg-white/5 ${active?.id === t.id ? "border-l-2 border-l-violet-electric bg-violet-electric/10" : ""}`}
                 >
-                  <button
-                    onClick={() => openThread(t.id)}
-                    className="w-full px-4 py-3 text-left"
-                  >
+                  <button onClick={() => openThread(t.id)} className="w-full px-4 py-3 text-left">
                     <div className="flex items-center justify-between pr-6">
                       <span className="font-display text-sm tracking-wide text-ivory">{label}</span>
                       {t.unreadAdmin > 0 && (
@@ -133,8 +161,6 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
                     </p>
                     <span className={`font-mono text-[9px] uppercase tracking-widest ${meta.color}`}>{meta.label}</span>
                   </button>
-
-                  {/* Bouton supprimer */}
                   {confirmId === t.id ? (
                     <div className="flex items-center gap-1 border-t border-white/5 px-4 py-2">
                       <button
@@ -167,8 +193,7 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
         </div>
       </div>
 
-      {/* Conversation */}
-      <div className={`flex-1 flex-col ${!active ? "hidden md:flex" : "flex"}`}>
+      <div className={`min-w-0 flex-1 flex-col ${!active ? "hidden md:flex" : "flex"}`}>
         {!active ? (
           <div className="flex flex-1 items-center justify-center">
             <div className="space-y-3 text-center">
@@ -178,34 +203,55 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
           </div>
         ) : (
           <>
-            {/* Header */}
             <div className="flex items-center gap-3 border-b border-white/10 px-5 py-3">
-              <button onClick={() => { setActive(null); setMessages([]) }} className="p-1 text-ivory/40 hover:text-ivory md:hidden">
+              <button onClick={() => { setActive(null); setMessages([]); setPicked([]) }} className="p-1 text-ivory/40 hover:text-ivory md:hidden">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <div className="min-w-0 flex-1">
                 <p className="font-display text-sm tracking-wide">
                   {active.customerName ?? active.pseudo ?? active.userToken?.slice(0, 12) ?? "—"}
                 </p>
-                <p className="font-mono text-[10px] text-ivory/40">
-                  #{active.id} {active.total ? `· ${formatPrice(active.total)}` : ""} {active.fulfillment ? `· ${active.fulfillment}` : ""}
-                  {active.scheduledDate ? ` · ${active.scheduledDate} ${active.scheduledSlot ?? ""}` : ""}
+                <p className="truncate font-mono text-[10px] text-ivory/40">
+                  #{active.id} {active.total ? `· ${formatPrice(active.total)}` : ""} · {fulfillmentLabel(active.fulfillment)}
+                  {active.scheduledDate ? ` · ${formatScheduledLabel(active.scheduledDate, active.scheduledSlot)}` : ""}
                 </p>
               </div>
-              {/* Sélecteur de statut */}
               <select
-                value={active.status}
-                onChange={(e) => handleStatusChange(active.id, e.target.value)}
-                className="border border-white/15 bg-void px-2 py-1 font-mono text-[10px] uppercase text-ivory outline-none focus:border-violet-electric"
+                value={normalizeStatus(active.status)}
+                onChange={(e) => void handleStatusChange(active.id, e.target.value)}
+                className="max-w-[200px] border border-white/15 bg-void px-2 py-1 font-mono text-[10px] text-ivory outline-none focus:border-violet-electric"
               >
-                {STATUS_OPTIONS.map((s) => (
+                {statusOptionsFor(active.status).map((s) => (
                   <option key={s} value={s}>{statusMeta(s).label}</option>
                 ))}
               </select>
             </div>
+            {statusError && (
+              <p className="border-b border-red-500/20 bg-red-500/10 px-5 py-2 font-mono text-[10px] text-red-300">{statusError}</p>
+            )}
 
-            {/* Messages */}
             <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+              {!isDiscussionStatus(active.status) && (
+                <OrderTrackingCard
+                  orderId={active.id}
+                  status={active.status}
+                  fulfillment={active.fulfillment}
+                  tracking={active.tracking}
+                  createdAt={active.createdAt}
+                  scheduledSlot={formatScheduledLabel(active.scheduledDate, active.scheduledSlot)}
+                  compact
+                />
+              )}
+              {picked.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleDeleteMessages}
+                  disabled={pending}
+                  className="border border-signal/40 bg-signal/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-signal disabled:opacity-40"
+                >
+                  Supprimer {picked.length} message{picked.length > 1 ? "s" : ""}
+                </button>
+              )}
               {pending && messages.length === 0 ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-5 w-5 animate-spin text-violet-electric/40" />
@@ -216,11 +262,25 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
                 messages.map((msg) => {
                   const isVendeur = msg.author === "vendeur" || msg.author === "admin"
                   return (
-                    <div key={msg.id} className={`flex ${isVendeur ? "justify-end" : "justify-start"}`}>
+                    <div key={msg.id} className={`flex items-end gap-2 ${isVendeur ? "justify-end" : "justify-start"}`}>
+                      {isVendeur && (
+                        <input
+                          type="checkbox"
+                          checked={picked.includes(msg.id)}
+                          onChange={() => togglePicked(msg.id)}
+                          aria-label="Sélectionner ce message"
+                          className="mb-1"
+                        />
+                      )}
                       <div className={`max-w-[75%] px-4 py-2.5 font-mono text-sm leading-relaxed ${isVendeur ? "bg-violet-electric/20 text-ivory ring-1 ring-violet-electric/30" : "bg-void text-ivory/80 ring-1 ring-white/10"}`}>
-                        <p>{msg.content}</p>
+                        <MessageBody content={msg.content} />
                         <p className="mt-1 text-[9px] text-ivory/30">
                           {new Date(msg.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                          {isVendeur && (
+                            <span className="ml-2 uppercase tracking-widest text-emerald-300/80">
+                              {msg.clientReadAt ? "Lu" : "Envoyé"}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -230,17 +290,17 @@ export function AdminMessagingPanel({ initial }: { initial: OrderThread[] }) {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
-            <div className="flex gap-3 border-t border-white/10 px-4 py-3">
+            <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">
+              <VoiceNoteButton disabled={pending} onSent={async (body) => { handleSend(body) }} />
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Répondre…"
-                className="flex-1 border border-white/10 bg-void px-4 py-2.5 font-mono text-sm text-ivory outline-none placeholder:text-ivory/30 focus:border-violet-electric/60"
+                className="min-w-0 flex-1 border border-white/10 bg-void px-4 py-2.5 font-mono text-sm text-ivory outline-none placeholder:text-ivory/30 focus:border-violet-electric/60"
               />
               <button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={pending || !input.trim()}
                 className="flex h-11 w-11 items-center justify-center bg-violet-electric/20 text-violet-electric ring-1 ring-violet-electric/40 transition hover:bg-violet-electric/30 disabled:opacity-40"
               >

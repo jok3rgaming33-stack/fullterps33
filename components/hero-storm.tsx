@@ -53,7 +53,7 @@ function makeBolt(w: number, h: number, now: number): Bolt {
     }
   }
   addBranches(main, 1, 0)
-  return { paths, born: now, life: rand(500, 800), seed: Math.random() }
+  return { paths, born: now, life: rand(900, 1500), seed: Math.random() }
 }
 
 const CHARACTER_POSITION = {
@@ -118,15 +118,15 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
           ctx.beginPath()
           ctx.moveTo(p.pts[0].x, p.pts[0].y)
           for (let i = 1; i < p.pts.length; i++) ctx.lineTo(p.pts[i].x, p.pts[i].y)
-          ctx.shadowColor = "#B355FF"
-          ctx.shadowBlur = 40
-          ctx.strokeStyle = `rgba(179,85,255,${0.7 * a})`
-          ctx.lineWidth = 12 * p.w
+          ctx.shadowColor = "#EDE4FF"
+          ctx.shadowBlur = 28
+          ctx.strokeStyle = `rgba(210,180,255,${0.85 * a})`
+          ctx.lineWidth = 14 * p.w
           ctx.stroke()
-          ctx.shadowBlur = 14
-          ctx.shadowColor = "#D9AFFF"
-          ctx.strokeStyle = `rgba(250,244,255,${a})`
-          ctx.lineWidth = Math.max(1, 3.2 * p.w)
+          ctx.shadowBlur = 8
+          ctx.shadowColor = "#FFFFFF"
+          ctx.strokeStyle = `rgba(255,255,255,${a})`
+          ctx.lineWidth = Math.max(1.6, 3.6 * p.w)
           ctx.stroke()
         }
       }
@@ -143,8 +143,9 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
     }
 
     const strike = () => {
+      if (W < 2 || H < 2) resize()
       const now = performance.now()
-      const n = Math.random() < 0.25 ? 2 : 1
+      const n = Math.random() < 0.45 ? 3 : 2
       for (let i = 0; i < n; i++) bolts.push(makeBolt(W, H, now))
       flash = Math.min(1, flash + rand(0.55, 0.9))
       kick()
@@ -160,7 +161,7 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
 
     const schedule = () => {
       clearTimeout(timer)
-      timer = setTimeout(strike, rand(900, 4200))
+      timer = setTimeout(strike, rand(700, 1800))
     }
 
     const onVis = () => {
@@ -177,7 +178,7 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
       }
     }
     document.addEventListener("visibilitychange", onVis)
-    timer = setTimeout(strike, 600)
+    timer = setTimeout(strike, 180)
 
     return () => {
       clearTimeout(timer)
@@ -207,8 +208,22 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
         />
       </div>
 
+      {variant === "hero" && (
+        <>
+          <svg viewBox="0 0 46 64" className="hero-bolt pointer-events-none absolute left-[18%] top-[8%] w-10 sm:w-14" aria-hidden="true">
+            <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#F4F0FF" stroke="#B355FF" strokeWidth="1" />
+          </svg>
+          <svg viewBox="0 0 46 64" className="hero-bolt hero-bolt-b pointer-events-none absolute right-[22%] top-[6%] w-8 sm:w-12" aria-hidden="true">
+            <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#FFFFFF" stroke="#D9AFFF" strokeWidth="1" />
+          </svg>
+          <svg viewBox="0 0 46 64" className="hero-bolt hero-bolt-c pointer-events-none absolute left-[42%] top-[18%] w-7 sm:left-[36%] sm:w-11" aria-hidden="true">
+            <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#E7D6FF" stroke="#FFFFFF" strokeWidth="1" />
+          </svg>
+        </>
+      )}
+
       {/* Éclairs procéduraux */}
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      <canvas ref={canvasRef} className="absolute inset-0 z-[2] h-full w-full" />
     </div>
   )
 }

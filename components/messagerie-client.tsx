@@ -10,7 +10,11 @@ import {
   type OrderThread,
   type ThreadMessage,
 } from "@/app/actions/messaging"
-import { statusMeta } from "@/lib/order-status"
+import { isDiscussionStatus, statusMeta } from "@/lib/order-status"
+import { formatScheduledLabel } from "@/lib/order-timeline"
+import { OrderTrackingCard } from "@/components/order-tracking-card"
+import { MessageBody } from "@/components/message-body"
+import { VoiceNoteButton } from "@/components/voice-note-button"
 
 type UserData = { pseudo?: string; token?: string } | null
 
@@ -54,7 +58,7 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
     if (!selected) return
     const id = setInterval(() => {
       getThread(selected.id)
-        .then((r) => { if (r) setMessages(r.messages) })
+        .then((r) => { if (r) { setMessages(r.messages); setSelected(r.thread) } })
         .catch(() => {})
     }, 5000)
     return () => clearInterval(id)
@@ -80,8 +84,9 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
     setSending(true)
     const body = reply.trim()
     setReply("")
-    const r = await addMessage(selected.id, "client", body)
-    if (r && "id" in r) setMessages((prev) => [...prev, r as unknown as ThreadMessage])
+    await addMessage(selected.id, "client", body)
+    const fresh = await getThread(selected.id)
+    if (fresh) setMessages(fresh.messages)
     setSending(false)
   }
 
@@ -142,8 +147,7 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     <span
-                      className="px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest"
-                      style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33` }}
+                      className={`px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest ${meta.badge}`}
                     >
                       {meta.label}
                     </span>
@@ -181,7 +185,21 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
             rows={5}
             className="w-full resize-none border border-white/10 bg-void px-3 py-2.5 font-mono text-sm text-ivory outline-none focus:border-violet-electric/50"
           />
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <VoiceNoteButton
+              disabled={creating}
+              onSent={async (body) => {
+                setCreating(true)
+                const r = await createGeneralInquiryThread({ customerName: name, message: body })
+                if (r.ok) {
+                  const updated = await getThreadsForToken(token)
+                  setThreads(updated)
+                  const created = updated.find((t) => t.id === r.id)
+                  if (created) await openThread(created)
+                }
+                setCreating(false)
+              }}
+            />
             <button
               onClick={handleCreate}
               disabled={creating || !composeText.trim()}
@@ -226,13 +244,23 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
         </div>
         {meta && (
           <span
-            className="px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest"
-            style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33` }}
+            className={`px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest ${meta.badge}`}
           >
             {meta.label}
           </span>
         )}
       </div>
+
+      {selected && !isDiscussionStatus(selected.status) && (
+        <OrderTrackingCard
+          orderId={selected.id}
+          status={selected.status}
+          fulfillment={selected.fulfillment}
+          tracking={selected.tracking}
+          createdAt={selected.createdAt}
+          scheduledSlot={formatScheduledLabel(selected.scheduledDate, selected.scheduledSlot)}
+        />
+      )}
 
       {/* Messages */}
       <div className="flex max-h-[500px] flex-col gap-3 overflow-y-auto border border-white/10 bg-void/60 p-4">
@@ -254,7 +282,7 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
                       : "bg-surface/60 text-ivory/80"
                   }`}
                 >
-                  {m.content}
+                  <MessageBody content={m.content} />
                 </div>
                 <p className="font-mono text-[9px] text-ivory/25">{fmtDate(m.createdAt)}</p>
               </div>
@@ -265,7 +293,21 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
       </div>
 
       {/* Input */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        <VoiceNoteButton
+          disabled={sending || !selected}
+          onSent={async (body) => {
+            if (!selected) return
+            setSending(true)
+            await addMessage(selected.id, "client", body)
+            const fresh = await getThread(selected.id)
+            if (fresh) {
+              setMessages(fresh.messages)
+              setSelected(fresh.thread)
+            }
+            setSending(false)
+          }}
+        />
         <input
           value={reply}
           onChange={(e) => setReply(e.target.value)}

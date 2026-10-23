@@ -10,7 +10,11 @@ import {
   type OrderThread,
   type ThreadMessage,
 } from "@/app/actions/messaging"
-import { statusMeta } from "@/lib/order-status"
+import { isDiscussionStatus, statusMeta } from "@/lib/order-status"
+import { formatScheduledLabel } from "@/lib/order-timeline"
+import { OrderTrackingCard } from "@/components/order-tracking-card"
+import { MessageBody } from "@/components/message-body"
+import { VoiceNoteButton } from "@/components/voice-note-button"
 
 type UserData = { pseudo?: string; token?: string } | null
 
@@ -60,7 +64,10 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
         setThreads(list)
         if (selectedRef.current != null) {
           const data = await getThread(selectedRef.current)
-          if (data) setMessages(data.messages)
+          if (data) {
+            setMessages(data.messages)
+            setSelected(data.thread)
+          }
         }
       } catch { /* silencieux */ }
     }, 8000)
@@ -126,7 +133,7 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
 
   const title = view === "thread"
     ? selected?.status === "discussion" ? "Discussion" : `Commande #${selected?.id}`
-    : view === "compose" ? "Contacter le chimiste" : "Messagerie"
+    : view === "compose" ? "Nouvelle discussion" : "Messagerie"
 
   return (
     <div
@@ -159,7 +166,7 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
                 className="clip-tag flex w-full items-center justify-center gap-2 bg-violet-electric py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void transition hover:brightness-110"
               >
                 <FlaskConical className="h-4 w-4" />
-                Contacter le chimiste
+                Nouvelle discussion
               </button>
             </div>
             <div className="flex-1 overflow-y-auto scroll-thin p-4">
@@ -229,6 +236,24 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
               rows={6}
               className="w-full flex-1 resize-none border border-white/15 bg-void p-3 font-mono text-sm text-ivory outline-none focus:border-violet-electric placeholder:text-ivory/30"
             />
+            <div className="flex items-center gap-2">
+              <VoiceNoteButton
+                disabled={creating}
+                onSent={async (body) => {
+                  setCreating(true)
+                  try {
+                    const r = await createGeneralInquiryThread({ customerName: name, message: body })
+                    if (r.ok) {
+                      const list = await getThreadsForToken(token)
+                      setThreads(list)
+                      const created = list.find((t) => t.id === r.id)
+                      if (created) await openThread(created)
+                    }
+                  } finally {
+                    setCreating(false)
+                  }
+                }}
+              />
             <button
               onClick={handleCreate}
               disabled={!composeText.trim() || creating}
@@ -236,6 +261,7 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Envoyer</>}
             </button>
+            </div>
           </div>
         )}
 
@@ -243,6 +269,16 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
         {view === "thread" && (
           <div className="flex flex-1 flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto scroll-thin p-4 space-y-3">
+              {selected && !isDiscussionStatus(selected.status) && (
+                <OrderTrackingCard
+                  orderId={selected.id}
+                  status={selected.status}
+                  fulfillment={selected.fulfillment}
+                  tracking={selected.tracking}
+                  createdAt={selected.createdAt}
+                  scheduledSlot={formatScheduledLabel(selected.scheduledDate, selected.scheduledSlot)}
+                />
+              )}
               {loadingThread ? (
                 <div className="flex items-center justify-center py-12 text-ivory/40">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -255,7 +291,7 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
                   return (
                     <div key={m.id} className={`flex ${isClient ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[80%] border px-4 py-2.5 ${isClient ? "border-violet-electric/40 bg-violet-electric/10 text-ivory" : "border-white/10 bg-void text-ivory/80"}`}>
-                        <p className="font-mono text-sm leading-relaxed">{m.content}</p>
+                        <MessageBody content={m.content} />
                         <p className="mt-1 font-mono text-[10px] text-ivory/30">{formatDate(m.createdAt)}</p>
                       </div>
                     </div>
@@ -267,7 +303,24 @@ export function MessagerieModal({ isOpen, onClose, userData }: Props) {
 
             {/* Réponse */}
             <div className="border-t border-white/10 p-4">
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <VoiceNoteButton
+                  disabled={sending || !selected}
+                  onSent={async (body) => {
+                    if (!selected) return
+                    setSending(true)
+                    try {
+                      await addMessage(selected.id, "client", body)
+                      const data = await getThread(selected.id)
+                      if (data) {
+                        setMessages(data.messages)
+                        setSelected(data.thread)
+                      }
+                    } finally {
+                      setSending(false)
+                    }
+                  }}
+                />
                 <input
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}

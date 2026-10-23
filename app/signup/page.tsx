@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { registerUser, loginWithToken } from '@/app/actions/auth'
 import { loginAdmin } from '@/app/actions/admin'
+import {
+  finishCustomerWebAuthnAuthentication,
+  startCustomerWebAuthnAuthentication,
+} from '@/app/actions/webauthn'
+import { browserSupportsWebAuthnSync, loadWebAuthnBrowser } from '@/lib/webauthn-browser'
+import type { AuthenticationResponseJSON } from '@simplewebauthn/server'
 import { HowItWorksModal } from '@/components/how-it-works-modal'
 import { SiteRulesModal } from '@/components/site-rules-modal'
 import { useSiteRules } from '@/components/site-rules-context'
@@ -28,6 +34,11 @@ export default function SignupPage() {
   const [tokenInput, setTokenInput] = useState('')
   const [rulesOpen, setRulesOpen] = useState(false)
   const [rulesAccepted, setRulesAccepted] = useState(false)
+  const [bioOk, setBioOk] = useState(false)
+
+  useEffect(() => {
+    setBioOk(browserSupportsWebAuthnSync())
+  }, [])
 
   useEffect(() => {
     setRulesAccepted(window.localStorage.getItem(RULES_STORAGE_KEY) === rulesVersion)
@@ -61,6 +72,37 @@ export default function SignupPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBioLogin = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const api = await loadWebAuthnBrowser()
+      if (!api?.browserSupportsWebAuthn()) {
+        setError("Cet appareil ne propose pas la biométrie.")
+        return
+      }
+      const started = await startCustomerWebAuthnAuthentication()
+      if (!started.ok) {
+        setError(started.error)
+        return
+      }
+      const response = (await api.startAuthentication({ optionsJSON: started.options })) as unknown as AuthenticationResponseJSON
+      const done = await finishCustomerWebAuthnAuthentication({
+        challengeId: started.challengeId,
+        response,
+      })
+      if (!done.ok) {
+        setError(done.error)
+        return
+      }
+      router.push('/compte')
+    } catch {
+      setError("Connexion biométrique annulée. Tu peux utiliser ton token.")
     } finally {
       setLoading(false)
     }
@@ -237,6 +279,17 @@ export default function SignupPage() {
                       <div className="border border-signal/30 bg-signal/10 rounded px-3 py-2">
                         <p className="font-mono text-xs text-signal">{error}</p>
                       </div>
+                    )}
+
+                    {bioOk && (
+                      <button
+                        type="button"
+                        onClick={handleBioLogin}
+                        disabled={loading}
+                        className="w-full border border-violet-electric/40 bg-violet-electric/10 py-3 font-mono text-xs font-bold uppercase tracking-[0.15em] text-violet-electric transition hover:bg-violet-electric/20 disabled:opacity-50"
+                      >
+                        {loading ? 'Connexion...' : 'Connexion biométrique'}
+                      </button>
                     )}
 
                     <button

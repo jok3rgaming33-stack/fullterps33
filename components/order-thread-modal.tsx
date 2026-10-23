@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useTransition } from "react"
 import { X, Send, MessageSquare, Loader2 } from "lucide-react"
 import { getOrCreateThread, getThreadById, addMessage, type ThreadMessage } from "@/app/actions/messaging"
 import { statusMeta } from "@/lib/order-status"
+import { MessageBody } from "@/components/message-body"
+import { VoiceNoteButton } from "@/components/voice-note-button"
 
 interface Props {
   orderId: number
@@ -95,7 +97,7 @@ export function OrderThreadModal({ orderId, onClose }: Props) {
                     {!isClient && (
                       <p className="mb-1 text-[9px] uppercase tracking-widest text-violet-electric/70">BRUMÉCO</p>
                     )}
-                    <p>{msg.content}</p>
+                    <MessageBody content={msg.content} />
                     <p className="mt-1 text-[9px] text-ivory/30">
                       {new Date(msg.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                     </p>
@@ -108,7 +110,16 @@ export function OrderThreadModal({ orderId, onClose }: Props) {
         </div>
 
         {/* Input */}
-        <div className="flex gap-3 border-t border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3 border-t border-white/10 px-4 py-3">
+          <VoiceNoteButton
+            disabled={pending || !threadId}
+            onSent={async (body) => {
+              if (!threadId) return
+              await addMessage(threadId, "client", body)
+              const data = await getThreadById(threadId)
+              if (data) { setMessages(data.messages); setStatus(data.thread.status) }
+            }}
+          />
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}

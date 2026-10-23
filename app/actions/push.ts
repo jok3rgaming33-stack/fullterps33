@@ -43,14 +43,28 @@ export async function unsubscribePush(endpoint: string): Promise<{ ok: boolean }
   return { ok: true }
 }
 
-export async function sendPushToUser(userToken: string, title: string, body: string): Promise<void> {
+export async function sendPushToUser(
+  userToken: string,
+  title: string,
+  body: string,
+  url = "/compte",
+): Promise<number> {
   const rows = (await sql`select endpoint, p256dh, auth from push_subscriptions where user_token = ${userToken}`) as unknown as PushRow[]
-  const payload = JSON.stringify({ title, body, icon: '/icon-192.png', badge: '/icon-192.png' })
-  await Promise.allSettled(
+  if (!rows.length) return 0
+  const payload = JSON.stringify({ title, body, icon: '/icon-192.png', badge: '/icon-192.png', url })
+  const results = await Promise.allSettled(
     rows.map((r) =>
       webpush.sendNotification({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload)
     )
   )
+  return results.filter((r) => r.status === "fulfilled").length
+}
+
+export async function customerHasPush(): Promise<boolean> {
+  const token = await getCustomerToken()
+  if (!token) return false
+  const rows = await sql`select 1 from push_subscriptions where user_token = ${token} limit 1`
+  return rows.length > 0
 }
 
 export async function broadcastPush(title: string, body: string): Promise<{ ok: boolean; sent: number }> {

@@ -23,6 +23,7 @@ import type { AdminUser } from "@/app/actions/account"
 import type { LoyaltyTier } from "@/app/actions/loyalty"
 import type { OrderThread } from "@/app/actions/messaging"
 import type { NewsItem, CartConfig, ShopSection } from "@/app/actions/settings"
+import { statusMeta } from "@/lib/order-status"
 import type { SiteRule } from "@/lib/site-rules"
 import type { VerificationRow } from "@/app/actions/verification"
 import { formatPrice } from "@/lib/utils"
@@ -228,15 +229,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
                         </div>
                         <div className="text-right">
                           <p className="font-display text-base">{formatPrice(o.total)}</p>
-                          <p className="font-mono text-[10px] text-ivory/40">
-                            {{
-                              en_attente: "En attente",
-                              confirmee:  "Confirmée",
-                              en_route:   "En route",
-                              livree:     "Livrée",
-                              annulee:    "Annulée",
-                            }[o.status] ?? o.status}
-                          </p>
+                          <p className="font-mono text-[10px] text-ivory/40">{statusMeta(o.status).label}</p>
                         </div>
                       </div>
                     ))

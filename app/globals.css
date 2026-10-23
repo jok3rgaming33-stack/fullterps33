@@ -127,7 +127,26 @@ body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
 }
+@keyframes bolt-flicker {
+  0%, 38%, 100% { opacity: 0.15; }
+  42% { opacity: 1; }
+  46% { opacity: 0.25; }
+  50% { opacity: 1; }
+  58% { opacity: 0.2; }
+}
+.hero-bolt {
+  animation: bolt-flicker 2.6s infinite;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.85));
+}
+.hero-bolt-b { animation-delay: 0.85s; }
+.hero-bolt-c { animation-delay: 1.6s; }
+@keyframes orderTrackPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+.order-track-current { animation: orderTrackPulse 2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .storm-clouds, .storm-halo, .storm-character { animation: none; }
+  .storm-clouds, .storm-halo, .storm-character, .hero-bolt, .order-track-current { animation: none; }
   .storm-character { filter: drop-shadow(0 0 30px rgba(179, 85, 255, 0.6)); }
+  .hero-bolt { opacity: 0.85; }
 }

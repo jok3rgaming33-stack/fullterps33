@@ -17,7 +17,7 @@ export async function Hero() {
   const text = (value: unknown, fallback: string) => visibleShopText(value, fallback, admin)
 
   return (
-    <section className="relative flex w-full items-center overflow-hidden border-b border-white/10 lg:min-h-[calc(100vh-69px)]">
+    <section className="relative flex min-h-[72vh] w-full items-center overflow-hidden border-b border-white/10 lg:min-h-[calc(100vh-69px)]">
       <StormBackground className="z-0" />
 
       <div className="absolute inset-0 bg-gradient-to-t from-void via-void/55 to-void/75 z-10" />
