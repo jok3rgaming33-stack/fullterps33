@@ -1,19 +1,21 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { Plus, Trash2, Save, Zap, BellRing, Clock, Store, Truck, Type } from "lucide-react"
 import {
   setSetting,
   setCartConfig,
+  setSectionHeading,
   createNews,
   updateNews,
   deleteNews,
   type NewsItem,
   type CartConfig,
+  type ShopSection,
 } from "@/app/actions/settings"
 import { broadcastPush } from "@/app/actions/push"
 import { useRouter } from "next/navigation"
-import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
+import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, isForbiddenCopy, publicText } from "@/lib/brand"
 import { notifyAdminChange } from "@/lib/admin-events"
 
 const NEWS_TYPES = ["info", "warning", "alert", "promo"] as const
@@ -28,6 +30,8 @@ interface Props {
   settings: Record<string, any>
   news: NewsItem[]
   cartConfig?: CartConfig
+  /** Sections de la page d'accueil (source réelle des titres affichés en vitrine). */
+  sections?: ShopSection[]
 }
 
 const DEFAULT_CONFIG: CartConfig = {
@@ -59,7 +63,11 @@ function Section({ icon: Icon, title, children }: { icon: any; title: string; ch
   )
 }
 
-export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: initialConfig }: Props) {
+function errMsg(err: unknown) {
+  return err instanceof Error && err.message ? err.message : "erreur serveur"
+}
+
+export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: initialConfig, sections = [] }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [logisticsFb, setLogisticsFb] = useState<string | null>(null)
@@ -67,6 +75,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   const [pushTitle, setPushTitle] = useState("")
   const [pushBody, setPushBody]   = useState("")
   const [pushFb, setPushFb]       = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // Textes du site
   const [heroEyebrow,    setHeroEyebrow]    = useState<string>(publicText(settings.hero_eyebrow, HERO_EYEBROW))
@@ -77,14 +86,29 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   const [siteName,            setSiteName]            = useState<string>(publicText(settings.site_name, BRAND_NAME))
   const [navLabelCapsule,     setNavLabelCapsule]     = useState<string>(publicText(settings.nav_label_capsule, "Les classiques"))
   const [navLabelNouveautes,  setNavLabelNouveautes]  = useState<string>(publicText(settings.nav_label_nouveautes, "Nouveautés"))
-  const [secCapsuleEyebrow,   setSecCapsuleEyebrow]   = useState<string>(publicText(settings.section_capsule_eyebrow, "En vedette"))
-  const [secCapsuleTitle,     setSecCapsuleTitle]     = useState<string>(publicText(settings.section_capsule_title, "Les classiques"))
-  const [secNouveautesEyebrow,setSecNouveautesEyebrow]= useState<string>(publicText(settings.section_nouveautes_eyebrow, "Arrivages"))
-  const [secNouveautesTitle,  setSecNouveautesTitle]  = useState<string>(publicText(settings.section_nouveautes_title, "Nouveautés"))
+  // Les titres de sections affichés en vitrine viennent de `shop_sections`
+  // (onglet Sections) : on part de là, et non des anciennes clés section_* que
+  // la boutique ne lit pas.
+  const secVedette    = sections.find((s) => s.slug === "vedette")
+  const secNouveautes = sections.find((s) => s.slug === "nouveautes")
+  const [secCapsuleEyebrow,   setSecCapsuleEyebrow]   = useState<string>(secVedette?.eyebrow    ?? publicText(settings.section_capsule_eyebrow, "En vedette"))
+  const [secCapsuleTitle,     setSecCapsuleTitle]     = useState<string>(secVedette?.title      ?? publicText(settings.section_capsule_title, "Les classiques"))
+  const [secNouveautesEyebrow,setSecNouveautesEyebrow]= useState<string>(secNouveautes?.eyebrow ?? publicText(settings.section_nouveautes_eyebrow, "Arrivages"))
+  const [secNouveautesTitle,  setSecNouveautesTitle]  = useState<string>(secNouveautes?.title   ?? publicText(settings.section_nouveautes_title, "Nouveautés"))
   const [siteTextsFb,         setSiteTextsFb]         = useState<string | null>(null)
 
   function saveSiteTexts() {
+    const texts: [string, string][] = [
+      ["Nom du site", siteName], ["Sur-titre hero", heroEyebrow], ["Texte hero", heroBody],
+      ["Bouton hero", heroCtaLabel], ["Slogan footer", footerTagline], ["Copyright", footerCopyright],
+      ["Lien Capsule", navLabelCapsule], ["Lien Nouveautés", navLabelNouveautes],
+      ["Section Capsule — Sous-titre", secCapsuleEyebrow], ["Section Capsule — Titre", secCapsuleTitle],
+      ["Section Nouveautés — Sous-titre", secNouveautesEyebrow], ["Section Nouveautés — Titre", secNouveautesTitle],
+    ]
+    // Textes que la vitrine remplacera par le texte par défaut (filtre de lib/brand.ts, ou champ vide).
+    const replaced = texts.filter(([, v]) => !v.trim() || isForbiddenCopy(v)).map(([l]) => l)
     startTransition(async () => {
+      try {
       await Promise.all([
         setSetting("hero_eyebrow",                heroEyebrow),
         setSetting("hero_body",                   heroBody),
@@ -99,10 +123,21 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
         setSetting("section_nouveautes_eyebrow",  secNouveautesEyebrow),
         setSetting("section_nouveautes_title",    secNouveautesTitle),
       ])
+      // Lus séquentiellement (lecture-modification-écriture de shop_sections).
+      const r1 = await setSectionHeading("vedette", secCapsuleEyebrow, secCapsuleTitle)
+      const r2 = await setSectionHeading("nouveautes", secNouveautesEyebrow, secNouveautesTitle)
+      const missing = [r1, r2].filter((r) => !r.ok).map((r) => r.error)
       notifyAdminChange("settings")
-      setSiteTextsFb("Textes sauvegardés")
-      setTimeout(() => setSiteTextsFb(null), 2500)
+      setSiteTextsFb(
+        "Textes sauvegardés" +
+        (missing.length ? ` — ${missing.join(", ")} (voir onglet Sections)` : "") +
+        (replaced.length ? ` — remplacé(s) par le texte par défaut en vitrine : ${replaced.join(", ")}` : ""),
+      )
+      setTimeout(() => setSiteTextsFb(null), replaced.length || missing.length ? 10000 : 2500)
       router.refresh()
+      } catch (err) {
+        setSiteTextsFb(`Échec de la sauvegarde : ${errMsg(err)}`)
+      }
     })
   }
 
@@ -131,11 +166,21 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
 
   function save(key: string, value: any) {
     startTransition(async () => {
-      await setSetting(key, value)
-      notifyAdminChange("settings")
-      router.refresh()
+      try {
+        await setSetting(key, value)
+        setSaveError(null)
+        notifyAdminChange("settings")
+        router.refresh()
+      } catch (err) {
+        setSaveError(`Échec de la sauvegarde (${key}) : ${errMsg(err)}`)
+      }
     })
   }
+
+  // Après router.refresh(), les nouvelles annonces arrivent par les props :
+  // on resynchronise la liste locale (sinon une annonce publiée n'apparaît
+  // qu'après un rechargement complet).
+  useEffect(() => { setNews(initialNews) }, [initialNews])
 
   function addSlot() {
     if (!newSlot.trim()) return
@@ -196,10 +241,15 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   // ── Logistique ─────────────────────────────────────────────────────────────
   function saveCartConfig() {
     startTransition(async () => {
-      await setCartConfig(config)
-      notifyAdminChange("cart")
-      setLogisticsFb("Configuration sauvegardée")
-      setTimeout(() => setLogisticsFb(null), 2500)
+      try {
+        await setCartConfig(config)
+        notifyAdminChange("cart")
+        setLogisticsFb("Configuration sauvegardée")
+        setTimeout(() => setLogisticsFb(null), 2500)
+        router.refresh()
+      } catch (err) {
+        setLogisticsFb(`Échec de la sauvegarde : ${errMsg(err)}`)
+      }
     })
   }
 
@@ -256,6 +306,9 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
 
   return (
     <div className="space-y-6">
+      {saveError && (
+        <p role="alert" className="border border-signal/40 bg-signal/10 px-3 py-2 font-mono text-xs text-signal">{saveError}</p>
+      )}
 
       {/* Textes du site */}
       <Section icon={Type} title="Textes du site">
@@ -343,7 +396,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
       {/* Statut boutique */}
       <Section icon={Store} title="Statut boutique">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-sm text-ivory/70">Boutique ouverte</span>
+          <span className="font-mono text-sm text-ivory/70">Boutique ouverte <span className="text-ivory/40">(fermée : bandeau en haut de la boutique)</span></span>
           <button
             onClick={() => { setShopOpen(!shopOpen); save("shop_open", !shopOpen) }}
             className={`relative h-6 w-11 rounded-full transition-colors ${shopOpen ? "bg-violet-electric" : "bg-white/10"}`}
@@ -376,6 +429,9 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
 
       {/* Créneaux livraison */}
       <Section icon={Clock} title="Créneaux de livraison">
+        <p className="font-mono text-[10px] leading-relaxed text-ivory/40">
+          Ancien réglage, non utilisé par le panier. Les créneaux et modes proposés aux clients se règlent dans « Logistique — créneaux &amp; montant min ».
+        </p>
         <div className="flex flex-wrap gap-2">
           {slots.map((s, i) => (
             <div key={i} className="flex items-center gap-1.5 bg-void border border-white/10 px-3 py-1.5">
@@ -478,6 +534,9 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
 
       {/* Modes de livraison */}
       <Section icon={Zap} title="Modes de livraison">
+        <p className="font-mono text-[10px] leading-relaxed text-ivory/40">
+          Ancien réglage, non utilisé par le panier. Les créneaux et modes proposés aux clients se règlent dans « Logistique — créneaux &amp; montant min ».
+        </p>
         <div className="flex flex-wrap gap-2">
           {modes.map((m, i) => (
             <div key={i} className="flex items-center gap-1.5 bg-void border border-white/10 px-3 py-1.5">

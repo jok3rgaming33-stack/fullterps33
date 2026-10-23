@@ -8,6 +8,7 @@ import { Footer } from "@/components/footer"
 import { getShopSections } from "@/app/actions/settings"
 import { getCurrentCustomer } from "@/app/actions/account"
 import { CheckoutCart } from "@/components/checkout-cart"
+import { ShopStatusBanner } from "@/components/shop-status-banner"
 
 export const dynamic = "force-dynamic"
 
@@ -34,6 +35,7 @@ export default async function HomePage({
   return (
     <>
       <Navbar />
+      <ShopStatusBanner />
       <main>
         <Hero />
         {sections.map((sec, i) => (

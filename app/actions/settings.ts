@@ -19,13 +19,19 @@ export async function getAllSettings(): Promise<Record<string, any>> {
 
 export async function setSetting(key: string, value: any): Promise<void> {
   if (!await isAdmin()) throw new Error("Non autorisé")
-  // postgres.js sérialise les objets/tableaux JS directement en JSONB sans cast ni sql.json()
+  // Sérialisation JSON explicite puis cast text → jsonb : sans ça, postgres.js
+  // envoie booléens et nombres comme paramètres typés bool/int et Postgres refuse
+  // (« column "value" is of type jsonb but expression is of type boolean ») —
+  // le toggle « Boutique ouverte » ne s'enregistrait donc jamais.
+  const json = JSON.stringify(value ?? null)
   await sql`
     insert into app_settings (key, value, updated_at)
-    values (${key}, ${value}, now())
-    on conflict (key) do update set value = ${value}, updated_at = now()
+    values (${key}, ${json}::text::jsonb, now())
+    on conflict (key) do update set value = ${json}::text::jsonb, updated_at = now()
   `
-  revalidatePath("/")
+  // Les réglages s'affichent sur toutes les pages (navbar, hero, footer, panier) :
+  // on invalide tout l'arbre à partir du layout racine, pas seulement "/".
+  revalidatePath("/", "layout")
   revalidatePath("/admin")
 }
 
@@ -114,6 +120,25 @@ export async function setShopSections(sections: ShopSection[]): Promise<{ ok: bo
   }
 }
 
+/**
+ * Met à jour uniquement le sur-titre et le titre d'une section de la page d'accueil.
+ * Relit la valeur actuelle en base (et non l'état du client) pour ne pas écraser
+ * les autres sections ni les modifications faites depuis l'onglet Sections.
+ */
+export async function setSectionHeading(
+  slug: string,
+  eyebrow: string,
+  title: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!await isAdmin()) return { ok: false, error: "Non autorisé" }
+  const row = await getSetting("shop_sections")
+  const current: ShopSection[] = Array.isArray(row) && row.length > 0 ? row : DEFAULT_SECTIONS
+  if (!current.some((s) => s.slug === slug)) return { ok: false, error: `Section « ${slug} » introuvable` }
+  const next = current.map((s) => (s.slug === slug ? { ...s, eyebrow, title } : s))
+  await setSetting("shop_sections", next)
+  return { ok: true }
+}
+
 // ── News / Annonces ────────────────────────────────────────────────────────
 
 export type NewsItem = {
@@ -157,7 +182,7 @@ export async function createNews(data: Omit<NewsItem, "id" | "createdAt">): Prom
     insert into news (title, body, type, active, popup)
     values (${data.title}, ${data.body}, ${data.type}, ${data.active}, ${data.popup})
   `
-  revalidatePath("/")
+  revalidatePath("/", "layout")
   revalidatePath("/admin")
 }
 
@@ -168,13 +193,13 @@ export async function updateNews(id: number, data: Partial<Omit<NewsItem, "id" |
   if (data.type !== undefined)   await sql`update news set type   = ${data.type}   where id = ${id}`
   if (data.active !== undefined) await sql`update news set active = ${data.active} where id = ${id}`
   if (data.popup !== undefined)  await sql`update news set popup  = ${data.popup}  where id = ${id}`
-  revalidatePath("/")
+  revalidatePath("/", "layout")
   revalidatePath("/admin")
 }
 
 export async function deleteNews(id: number): Promise<void> {
   if (!await isAdmin()) throw new Error("Non autorisé")
   await sql`delete from news where id = ${id}`
-  revalidatePath("/")
+  revalidatePath("/", "layout")
   revalidatePath("/admin")
 }

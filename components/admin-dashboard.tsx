@@ -323,7 +323,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
           {active === "settings" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">Réglages</h2>
-              <AdminSettingsPanel settings={appSettings} news={news} cartConfig={cartConfig} />
+              <AdminSettingsPanel settings={appSettings} news={news} cartConfig={cartConfig} sections={sections} />
             </div>
           )}
 
