@@ -30,30 +30,25 @@ function displace(a: Pt, b: Pt, rough: number, depth: number, out: Pt[]) {
 
 function makePath(a: Pt, b: Pt, depth: number): Pt[] {
   const out: Pt[] = [a]
-  displace(a, b, 0.55, depth, out)
+  displace(a, b, 0.45, depth, out)
   return out
 }
 
 function makeBolt(w: number, h: number, now: number): Bolt {
-  const start = { x: rand(0.05, 0.95) * w, y: -10 }
-  const end = { x: start.x + rand(-0.25, 0.25) * w, y: rand(0.5, 0.95) * h }
-  const main = makePath(start, end, 7)
+  const start = { x: rand(0.12, 0.88) * w, y: -8 }
+  const end = { x: start.x + rand(-0.18, 0.18) * w, y: rand(0.45, 0.82) * h }
+  const main = makePath(start, end, 4)
   const paths: Bolt["paths"] = [{ pts: main, w: 1 }]
-  const addBranches = (src: Pt[], weight: number, gen: number) => {
-    if (gen > 2) return
-    for (let i = 4; i < src.length - 4; i++) {
-      if (Math.random() > 0.07 / (gen + 1)) continue
-      const p = src[i]
-      const dir = Math.atan2(src[i + 1].y - p.y, src[i + 1].x - p.x) + rand(-0.9, 0.9)
-      const len = rand(0.08, 0.28) * h * weight
-      const q = { x: p.x + Math.cos(dir) * len, y: p.y + Math.abs(Math.sin(dir)) * len }
-      const br = makePath(p, q, 5)
-      paths.push({ pts: br, w: weight * 0.5 })
-      addBranches(br, weight * 0.5, gen + 1)
-    }
+  // Une seule ramification légère : le flou d'ombre et les arbres profonds figeaient le défilement.
+  if (main.length > 6 && Math.random() < 0.55) {
+    const i = 2 + Math.floor(Math.random() * (main.length - 4))
+    const p = main[i]
+    const dir = Math.atan2(main[i + 1].y - p.y, main[i + 1].x - p.x) + rand(-0.7, 0.7)
+    const len = rand(0.06, 0.16) * h
+    const q = { x: p.x + Math.cos(dir) * len, y: p.y + Math.abs(Math.sin(dir)) * len }
+    paths.push({ pts: makePath(p, q, 3), w: 0.45 })
   }
-  addBranches(main, 1, 0)
-  return { paths, born: now, life: rand(900, 1500), seed: Math.random() }
+  return { paths, born: now, life: rand(380, 620), seed: Math.random() }
 }
 
 const CHARACTER_POSITION = {
@@ -80,12 +75,14 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
     let W = 0
     let H = 0
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      // DPR 1 : un canvas rétina plein écran avec ombre floue saturait le mobile.
       W = wrap.clientWidth
       H = wrap.clientHeight
-      canvas.width = Math.round(W * dpr)
-      canvas.height = Math.round(H * dpr)
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      if (canvas.width !== W || canvas.height !== H) {
+        canvas.width = Math.max(1, Math.round(W))
+        canvas.height = Math.max(1, Math.round(H))
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+      }
     }
     resize()
     const ro = new ResizeObserver(resize)
@@ -94,13 +91,11 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
     let bolts: Bolt[] = []
     let flash = 0
     let raf = 0
+    let onScreen = true
     let timer: ReturnType<typeof setTimeout> | undefined
 
     const applyFlash = (v: number) => {
-      if (flashRef.current) flashRef.current.style.opacity = String(v)
-      if (charRef.current) {
-        charRef.current.style.filter = `drop-shadow(0 0 ${22 + 40 * v}px rgba(${179 + 38 * v},${85 + 90 * v},255,${0.45 + 0.5 * v})) brightness(${1 + 0.55 * v})`
-      }
+      if (flashRef.current) flashRef.current.style.opacity = v < 0.04 ? "0" : v.toFixed(2)
     }
 
     const frame = (now: number) => {
@@ -112,26 +107,20 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
       for (const b of bolts) {
         const t = (now - b.born) / b.life
         // scintillement au début, puis extinction
-        const flick = t < 0.35 ? (Math.random() < 0.3 ? 0.25 : 1) : 1
-        const a = (t < 0.25 ? 1 : Math.pow(1 - (t - 0.25) / 0.75, 1.4)) * flick
+        const a = t < 0.2 ? 1 : Math.pow(1 - (t - 0.2) / 0.8, 1.6)
         for (const p of b.paths) {
           ctx.beginPath()
           ctx.moveTo(p.pts[0].x, p.pts[0].y)
           for (let i = 1; i < p.pts.length; i++) ctx.lineTo(p.pts[i].x, p.pts[i].y)
-          ctx.shadowColor = "#EDE4FF"
-          ctx.shadowBlur = 28
-          ctx.strokeStyle = `rgba(210,180,255,${0.85 * a})`
-          ctx.lineWidth = 14 * p.w
+          ctx.strokeStyle = `rgba(196,150,255,${0.55 * a})`
+          ctx.lineWidth = 7 * p.w
           ctx.stroke()
-          ctx.shadowBlur = 8
-          ctx.shadowColor = "#FFFFFF"
           ctx.strokeStyle = `rgba(255,255,255,${a})`
-          ctx.lineWidth = Math.max(1.6, 3.6 * p.w)
+          ctx.lineWidth = Math.max(1.2, 2.2 * p.w)
           ctx.stroke()
         }
       }
-      ctx.shadowBlur = 0
-      flash *= 0.88
+      flash *= 0.8
       if (flash < 0.01) flash = 0
       applyFlash(flash)
       if (bolts.length || flash) raf = requestAnimationFrame(frame)
@@ -143,25 +132,21 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
     }
 
     const strike = () => {
-      if (W < 2 || H < 2) resize()
-      const now = performance.now()
-      const n = Math.random() < 0.45 ? 3 : 2
-      for (let i = 0; i < n; i++) bolts.push(makeBolt(W, H, now))
-      flash = Math.min(1, flash + rand(0.55, 0.9))
-      kick()
-      // ré-amorçage fréquent : un second flash très court
-      if (Math.random() < 0.45) {
-        setTimeout(() => {
-          flash = Math.min(1, flash + rand(0.3, 0.6))
-          kick()
-        }, rand(90, 220))
+      if (!onScreen) {
+        schedule()
+        return
       }
+      if (W < 2 || H < 2) resize()
+      bolts.push(makeBolt(W, H, performance.now()))
+      flash = Math.min(0.55, flash + rand(0.28, 0.45))
+      kick()
       schedule()
     }
 
+    // Assez rare pour laisser scroller : un éclair toutes les 9 à 16 secondes.
     const schedule = () => {
       clearTimeout(timer)
-      timer = setTimeout(strike, rand(700, 1800))
+      timer = setTimeout(strike, rand(9000, 16000))
     }
 
     const onVis = () => {
@@ -178,12 +163,28 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
       }
     }
     document.addEventListener("visibilitychange", onVis)
-    timer = setTimeout(strike, 180)
+    const io = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting
+      if (!onScreen) {
+        clearTimeout(timer)
+        cancelAnimationFrame(raf)
+        raf = 0
+        bolts = []
+        flash = 0
+        applyFlash(0)
+        ctx.clearRect(0, 0, W, H)
+      } else if (!document.hidden) {
+        schedule()
+      }
+    })
+    io.observe(wrap)
+    timer = setTimeout(strike, rand(4000, 7000))
 
     return () => {
       clearTimeout(timer)
       cancelAnimationFrame(raf)
       ro.disconnect()
+      io.disconnect()
       document.removeEventListener("visibilitychange", onVis)
     }
   }, [])
@@ -208,21 +209,7 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
         />
       </div>
 
-      {variant === "hero" && (
-        <>
-          <svg viewBox="0 0 46 64" className="hero-bolt pointer-events-none absolute left-[18%] top-[8%] w-10 sm:w-14" aria-hidden="true">
-            <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#F4F0FF" stroke="#B355FF" strokeWidth="1" />
-          </svg>
-          <svg viewBox="0 0 46 64" className="hero-bolt hero-bolt-b pointer-events-none absolute right-[22%] top-[6%] w-8 sm:w-12" aria-hidden="true">
-            <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#FFFFFF" stroke="#D9AFFF" strokeWidth="1" />
-          </svg>
-          <svg viewBox="0 0 46 64" className="hero-bolt hero-bolt-c pointer-events-none absolute left-[42%] top-[18%] w-7 sm:left-[36%] sm:w-11" aria-hidden="true">
-            <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#E7D6FF" stroke="#FFFFFF" strokeWidth="1" />
-          </svg>
-        </>
-      )}
-
-      {/* Éclairs procéduraux */}
+      {/* Éclairs procéduraux, rares */}
       <canvas ref={canvasRef} className="absolute inset-0 z-[2] h-full w-full" />
     </div>
   )

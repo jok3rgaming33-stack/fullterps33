@@ -7,7 +7,7 @@ export function LightningDivider({ label }: { label?: string }) {
         height="64"
         viewBox="0 0 46 64"
         fill="none"
-        className="hero-bolt absolute drop-shadow-[0_0_18px_rgba(179,85,255,0.65)]"
+        className="absolute drop-shadow-[0_0_12px_rgba(179,85,255,0.45)]"
         aria-hidden="true"
       >
         <path
