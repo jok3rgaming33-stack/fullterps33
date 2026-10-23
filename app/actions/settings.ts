@@ -7,14 +7,35 @@ import { isForbiddenCopy, publicText } from "@/lib/brand"
 
 // ── Paramètres généraux ────────────────────────────────────────────────────
 
+/**
+ * Certaines valeurs anciennes ont été enregistrées doublement encodées
+ * (la chaîne JSON elle-même entre guillemets, ex. `"Nouveautés"` affiché avec
+ * ses guillemets). On les décode à la lecture.
+ */
+function unwrapQuoted(value: any): any {
+  let v = value
+  for (let i = 0; i < 3 && typeof v === "string"; i++) {
+    const t = v.trim()
+    if (t.length < 2 || !t.startsWith('"') || !t.endsWith('"')) break
+    try {
+      const parsed = JSON.parse(t)
+      if (typeof parsed !== "string") break
+      v = parsed
+    } catch {
+      v = t.slice(1, -1)
+    }
+  }
+  return v
+}
+
 export async function getSetting(key: string): Promise<any> {
   const rows = await sql`select value from app_settings where key = ${key}`
-  return rows[0]?.value ?? null
+  return unwrapQuoted(rows[0]?.value ?? null)
 }
 
 export async function getAllSettings(): Promise<Record<string, any>> {
   const rows = await sql`select key, value from app_settings`
-  return Object.fromEntries(rows.map((r: any) => [r.key, r.value]))
+  return Object.fromEntries(rows.map((r: any) => [r.key, unwrapQuoted(r.value)]))
 }
 
 export async function setSetting(key: string, value: any): Promise<void> {
@@ -137,6 +158,65 @@ export async function setSectionHeading(
   const next = current.map((s) => (s.slug === slug ? { ...s, eyebrow, title } : s))
   await setSetting("shop_sections", next)
   return { ok: true }
+}
+
+// ── Textes du site (sauvegarde groupée) ─────────────────────────────────────
+
+const SITE_TEXT_KEYS = [
+  "site_name", "hero_eyebrow", "hero_body", "hero_cta_label", "footer_tagline", "footer_copyright",
+  "nav_label_capsule", "nav_label_nouveautes",
+  "section_capsule_eyebrow", "section_capsule_title", "section_nouveautes_eyebrow", "section_nouveautes_title",
+] as const
+
+/**
+ * Enregistre tout le groupe « Textes du site » en UNE requête serveur et une
+ * transaction. Avant, l'admin envoyait 14 actions serveur l'une après l'autre
+ * (chacune re-rendant toute la page /admin) : sur mobile/production la
+ * sauvegarde pouvait durer longtemps et un rafraîchissement en cours de route
+ * perdait les dernières clés.
+ */
+export async function saveSiteTextsAction(
+  texts: Record<string, string>,
+  headings: { slug: string; eyebrow: string; title: string }[],
+): Promise<{ ok: boolean; error?: string; missing?: string[] }> {
+  if (!await isAdmin()) return { ok: false, error: "Non autorisé" }
+  try {
+    const missing: string[] = []
+    await sql.begin(async (tx: any) => {
+      for (const key of SITE_TEXT_KEYS) {
+        if (typeof texts[key] !== "string") continue
+        const json = JSON.stringify(texts[key])
+        await tx`
+          insert into app_settings (key, value, updated_at)
+          values (${key}, ${json}::text::jsonb, now())
+          on conflict (key) do update set value = ${json}::text::jsonb, updated_at = now()
+        `
+      }
+      if (headings.length) {
+        const [row] = await tx`select value from app_settings where key = 'shop_sections' for update`
+        const stored = row?.value
+        const current: ShopSection[] = Array.isArray(stored) && stored.length > 0 ? stored : DEFAULT_SECTIONS
+        const next = current.map((s) => {
+          const h = headings.find((x) => x.slug === s.slug)
+          return h ? { ...s, eyebrow: h.eyebrow, title: h.title } : s
+        })
+        for (const h of headings) if (!current.some((s) => s.slug === h.slug)) missing.push(h.slug)
+        const json = JSON.stringify(next)
+        await tx`
+          insert into app_settings (key, value, updated_at)
+          values ('shop_sections', ${json}::text::jsonb, now())
+          on conflict (key) do update set value = ${json}::text::jsonb, updated_at = now()
+        `
+      }
+    })
+    revalidatePath("/", "layout")
+    revalidatePath("/admin")
+    return { ok: true, missing }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("[settings] saveSiteTextsAction error:", msg)
+    return { ok: false, error: msg }
+  }
 }
 
 // ── News / Annonces ────────────────────────────────────────────────────────

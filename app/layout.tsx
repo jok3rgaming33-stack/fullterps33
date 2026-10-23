@@ -4,6 +4,8 @@ import "./globals.css"
 import { CartProvider } from "@/components/cart-provider"
 import { NewsPopupLoader } from "@/components/news-popup"
 import { ServiceWorkerRegistrar } from "@/components/sw-register"
+import { getSetting } from "@/app/actions/settings"
+import { BRAND_NAME, publicText } from "@/lib/brand"
 
 const anton = Anton({
   weight: "400",
@@ -23,10 +25,15 @@ const jbmono = JetBrains_Mono({
 
 export const dynamic = "force-dynamic"
 
-export const metadata: Metadata = {
-  title: "BRUMÉCO — E-liquides éco-durables",
-  description:
-    "E-boutique d'e-liquides pour cigarette électronique. Flacons rechargeables, formules suivies. Réservé aux 18 ans et plus.",
+// Titre de l'onglet / de l'appli : suit « Nom du site » des Réglages.
+export async function generateMetadata(): Promise<Metadata> {
+  let name = BRAND_NAME
+  try { name = publicText(await getSetting("site_name"), BRAND_NAME) } catch {}
+  return {
+    title: `${name} — E-liquides éco-durables`,
+    description:
+      "E-boutique d'e-liquides pour cigarette électronique. Flacons rechargeables, formules suivies. Réservé aux 18 ans et plus.",
+  }
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

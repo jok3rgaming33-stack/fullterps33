@@ -5,11 +5,12 @@ import { StormBackground } from "@/components/storm-background"
 import { BRAND_NAME, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
 
 export async function Hero() {
-  const [eyebrow, body, cta, siteName] = await Promise.all([
+  const [eyebrow, body, cta, siteName, navNouveautes] = await Promise.all([
     getSetting("hero_eyebrow"),
     getSetting("hero_body"),
     getSetting("hero_cta_label"),
     getSetting("site_name"),
+    getSetting("nav_label_nouveautes"),
   ])
 
   return (
@@ -45,7 +46,7 @@ export async function Hero() {
               href="#nouveautes"
               className="border border-white/20 bg-void/40 backdrop-blur-sm px-8 py-3 font-mono text-xs uppercase tracking-[0.2em] text-ivory/80 transition hover:border-violet-electric hover:text-violet-electric text-center min-w-[160px]"
             >
-              Nouveautés
+              {publicText(navNouveautes, "Nouveautés")}
             </Link>
           </div>
         </div>

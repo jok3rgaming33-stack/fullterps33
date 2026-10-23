@@ -5,7 +5,7 @@ import { Plus, Trash2, Save, Zap, BellRing, Clock, Store, Truck, Type } from "lu
 import {
   setSetting,
   setCartConfig,
-  setSectionHeading,
+  saveSiteTextsAction,
   createNews,
   updateNews,
   deleteNews,
@@ -15,7 +15,7 @@ import {
 } from "@/app/actions/settings"
 import { broadcastPush } from "@/app/actions/push"
 import { useRouter } from "next/navigation"
-import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, isForbiddenCopy, publicText } from "@/lib/brand"
+import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
 import { notifyAdminChange } from "@/lib/admin-events"
 
 const NEWS_TYPES = ["info", "warning", "alert", "promo"] as const
@@ -63,6 +63,43 @@ function Section({ icon: Icon, title, children }: { icon: any; title: string; ch
   )
 }
 
+const COPYRIGHT_DEFAULT = `© ${new Date().getFullYear()} ${BRAND_NAME} — Tous droits réservés`
+
+/** Valeur brute enregistrée (sans le filtre de marque), pour que l'admin voie ce qui est réellement en base. */
+function rawText(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback
+}
+
+/**
+ * Champ texte + aperçu de ce que la vitrine affichera réellement. lib/brand.ts
+ * (publicText) remplace les textes vides, interdits ou d'anciennes formulations
+ * par un texte par défaut : on le signale ici au lieu de laisser croire que la
+ * sauvegarde n'a pas marché.
+ */
+function TextField({ label, value, onChange, fallback, multiline = false, wide = false }: {
+  label: string; value: string; onChange: (v: string) => void; fallback: string; multiline?: boolean; wide?: boolean
+}) {
+  const shown = publicText(value, fallback)
+  const replaced = shown !== value.trim()
+  const cls = "w-full bg-void border px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60 " +
+    (replaced ? "border-signal/50" : "border-white/10")
+  return (
+    <div className={`space-y-1 ${wide ? "sm:col-span-2" : ""}`}>
+      <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">{label}</label>
+      {multiline
+        ? <textarea value={value} onChange={e => onChange(e.target.value)} rows={3} className={cls + " resize-none"} />
+        : <input value={value} onChange={e => onChange(e.target.value)} className={cls} />}
+      {replaced && (
+        <p className="font-mono text-[10px] leading-relaxed text-signal" data-replaced-note>
+          {value.trim()
+            ? <>Non affiché tel quel : la vitrine affichera « {shown} » (formulation remplacée ou interdite par la règle de marque).</>
+            : <>Champ vide : la vitrine affichera « {shown} ».</>}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function errMsg(err: unknown) {
   return err instanceof Error && err.message ? err.message : "erreur serveur"
 }
@@ -78,63 +115,62 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
   const [saveError, setSaveError] = useState<string | null>(null)
 
   // Textes du site
-  const [heroEyebrow,    setHeroEyebrow]    = useState<string>(publicText(settings.hero_eyebrow, HERO_EYEBROW))
-  const [heroBody,       setHeroBody]       = useState<string>(publicText(settings.hero_body, HERO_BODY))
-  const [heroCtaLabel,   setHeroCtaLabel]   = useState<string>(publicText(settings.hero_cta_label, HERO_CTA))
-  const [footerTagline,  setFooterTagline]  = useState<string>(publicText(settings.footer_tagline, FOOTER_TAGLINE))
-  const [footerCopyright,setFooterCopyright]= useState<string>(publicText(settings.footer_copyright, `© ${new Date().getFullYear()} ${BRAND_NAME} — Tous droits réservés`))
-  const [siteName,            setSiteName]            = useState<string>(publicText(settings.site_name, BRAND_NAME))
-  const [navLabelCapsule,     setNavLabelCapsule]     = useState<string>(publicText(settings.nav_label_capsule, "Les classiques"))
-  const [navLabelNouveautes,  setNavLabelNouveautes]  = useState<string>(publicText(settings.nav_label_nouveautes, "Nouveautés"))
+  // Valeurs brutes enregistrées (et non filtrées) : voir TextField pour l'aperçu vitrine.
+  const [heroEyebrow,    setHeroEyebrow]    = useState<string>(rawText(settings.hero_eyebrow, HERO_EYEBROW))
+  const [heroBody,       setHeroBody]       = useState<string>(rawText(settings.hero_body, HERO_BODY))
+  const [heroCtaLabel,   setHeroCtaLabel]   = useState<string>(rawText(settings.hero_cta_label, HERO_CTA))
+  const [footerTagline,  setFooterTagline]  = useState<string>(rawText(settings.footer_tagline, FOOTER_TAGLINE))
+  const [footerCopyright,setFooterCopyright]= useState<string>(rawText(settings.footer_copyright, COPYRIGHT_DEFAULT))
+  const [siteName,            setSiteName]            = useState<string>(rawText(settings.site_name, BRAND_NAME))
+  const [navLabelCapsule,     setNavLabelCapsule]     = useState<string>(rawText(settings.nav_label_capsule, "Les classiques"))
+  const [navLabelNouveautes,  setNavLabelNouveautes]  = useState<string>(rawText(settings.nav_label_nouveautes, "Nouveautés"))
   // Les titres de sections affichés en vitrine viennent de `shop_sections`
-  // (onglet Sections) : on part de là, et non des anciennes clés section_* que
-  // la boutique ne lit pas.
-  const secVedette    = sections.find((s) => s.slug === "vedette")
-  const secNouveautes = sections.find((s) => s.slug === "nouveautes")
-  const [secCapsuleEyebrow,   setSecCapsuleEyebrow]   = useState<string>(secVedette?.eyebrow    ?? publicText(settings.section_capsule_eyebrow, "En vedette"))
-  const [secCapsuleTitle,     setSecCapsuleTitle]     = useState<string>(secVedette?.title      ?? publicText(settings.section_capsule_title, "Les classiques"))
-  const [secNouveautesEyebrow,setSecNouveautesEyebrow]= useState<string>(secNouveautes?.eyebrow ?? publicText(settings.section_nouveautes_eyebrow, "Arrivages"))
-  const [secNouveautesTitle,  setSecNouveautesTitle]  = useState<string>(secNouveautes?.title   ?? publicText(settings.section_nouveautes_title, "Nouveautés"))
+  // (onglet Sections) : on part de la valeur brute en base.
+  const rawSections: ShopSection[] = Array.isArray(settings.shop_sections) && settings.shop_sections.length > 0 ? settings.shop_sections : sections
+  const secVedette    = rawSections.find((s) => s.slug === "vedette")
+  const secNouveautes = rawSections.find((s) => s.slug === "nouveautes")
+  const [secCapsuleEyebrow,   setSecCapsuleEyebrow]   = useState<string>(rawText(secVedette?.eyebrow,    "En vedette"))
+  const [secCapsuleTitle,     setSecCapsuleTitle]     = useState<string>(rawText(secVedette?.title,      "Les classiques"))
+  const [secNouveautesEyebrow,setSecNouveautesEyebrow]= useState<string>(rawText(secNouveautes?.eyebrow, "Arrivages"))
+  const [secNouveautesTitle,  setSecNouveautesTitle]  = useState<string>(rawText(secNouveautes?.title,   "Nouveautés"))
   const [siteTextsFb,         setSiteTextsFb]         = useState<string | null>(null)
 
   function saveSiteTexts() {
-    const texts: [string, string][] = [
-      ["Nom du site", siteName], ["Sur-titre hero", heroEyebrow], ["Texte hero", heroBody],
-      ["Bouton hero", heroCtaLabel], ["Slogan footer", footerTagline], ["Copyright", footerCopyright],
-      ["Lien Capsule", navLabelCapsule], ["Lien Nouveautés", navLabelNouveautes],
-      ["Section Capsule — Sous-titre", secCapsuleEyebrow], ["Section Capsule — Titre", secCapsuleTitle],
-      ["Section Nouveautés — Sous-titre", secNouveautesEyebrow], ["Section Nouveautés — Titre", secNouveautesTitle],
+    const texts: [string, string, string][] = [
+      ["Nom du site", siteName, BRAND_NAME], ["Hero — Accroche", heroEyebrow, HERO_EYEBROW], ["Hero — Description", heroBody, HERO_BODY],
+      ["Hero — Bouton principal", heroCtaLabel, HERO_CTA], ["Footer — Slogan", footerTagline, FOOTER_TAGLINE], ["Footer — Copyright", footerCopyright, COPYRIGHT_DEFAULT],
+      ["Lien Capsule", navLabelCapsule, "Les classiques"], ["Lien Nouveautés", navLabelNouveautes, "Nouveautés"],
+      ["Section Capsule — Sous-titre", secCapsuleEyebrow, "En vedette"], ["Section Capsule — Titre", secCapsuleTitle, "Les classiques"],
+      ["Section Nouveautés — Sous-titre", secNouveautesEyebrow, "En vedette"], ["Section Nouveautés — Titre", secNouveautesTitle, "Les classiques"],
     ]
-    // Textes que la vitrine remplacera par le texte par défaut (filtre de lib/brand.ts, ou champ vide).
-    const replaced = texts.filter(([, v]) => !v.trim() || isForbiddenCopy(v)).map(([l]) => l)
+    // Textes que la vitrine remplacera (filtre de lib/brand.ts, ancienne formulation ou champ vide).
+    const replaced = texts.filter(([, v, fb]) => publicText(v, fb) !== v.trim()).map(([l]) => l)
+    setSiteTextsFb("Sauvegarde en cours…")
     startTransition(async () => {
       try {
-      await Promise.all([
-        setSetting("hero_eyebrow",                heroEyebrow),
-        setSetting("hero_body",                   heroBody),
-        setSetting("hero_cta_label",              heroCtaLabel),
-        setSetting("footer_tagline",              footerTagline),
-        setSetting("footer_copyright",            footerCopyright),
-        setSetting("site_name",                   siteName),
-        setSetting("nav_label_capsule",           navLabelCapsule),
-        setSetting("nav_label_nouveautes",        navLabelNouveautes),
-        setSetting("section_capsule_eyebrow",     secCapsuleEyebrow),
-        setSetting("section_capsule_title",       secCapsuleTitle),
-        setSetting("section_nouveautes_eyebrow",  secNouveautesEyebrow),
-        setSetting("section_nouveautes_title",    secNouveautesTitle),
-      ])
-      // Lus séquentiellement (lecture-modification-écriture de shop_sections).
-      const r1 = await setSectionHeading("vedette", secCapsuleEyebrow, secCapsuleTitle)
-      const r2 = await setSectionHeading("nouveautes", secNouveautesEyebrow, secNouveautesTitle)
-      const missing = [r1, r2].filter((r) => !r.ok).map((r) => r.error)
-      notifyAdminChange("settings")
-      setSiteTextsFb(
-        "Textes sauvegardés" +
-        (missing.length ? ` — ${missing.join(", ")} (voir onglet Sections)` : "") +
-        (replaced.length ? ` — remplacé(s) par le texte par défaut en vitrine : ${replaced.join(", ")}` : ""),
-      )
-      setTimeout(() => setSiteTextsFb(null), replaced.length || missing.length ? 10000 : 2500)
-      router.refresh()
+        const res = await saveSiteTextsAction(
+          {
+            site_name: siteName, hero_eyebrow: heroEyebrow, hero_body: heroBody, hero_cta_label: heroCtaLabel,
+            footer_tagline: footerTagline, footer_copyright: footerCopyright,
+            nav_label_capsule: navLabelCapsule, nav_label_nouveautes: navLabelNouveautes,
+            section_capsule_eyebrow: secCapsuleEyebrow, section_capsule_title: secCapsuleTitle,
+            section_nouveautes_eyebrow: secNouveautesEyebrow, section_nouveautes_title: secNouveautesTitle,
+          },
+          [
+            { slug: "vedette",    eyebrow: secCapsuleEyebrow,    title: secCapsuleTitle },
+            { slug: "nouveautes", eyebrow: secNouveautesEyebrow, title: secNouveautesTitle },
+          ],
+        )
+        if (!res.ok) { setSiteTextsFb(`Échec de la sauvegarde : ${res.error ?? "erreur serveur"}`); return }
+        const missing = res.missing ?? []
+        notifyAdminChange("settings")
+        setSiteTextsFb(
+          "Textes sauvegardés" +
+          (missing.length ? ` — section(s) introuvable(s) : ${missing.join(", ")} (voir onglet Sections)` : "") +
+          (replaced.length ? ` — non affiché(s) tel quel en vitrine : ${replaced.join(", ")} (voir les notes sous les champs)` : ""),
+        )
+        setTimeout(() => setSiteTextsFb(null), replaced.length || missing.length ? 10000 : 3000)
+        router.refresh()
       } catch (err) {
         setSiteTextsFb(`Échec de la sauvegarde : ${errMsg(err)}`)
       }
@@ -315,82 +351,36 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
         {siteTextsFb && <p className="font-mono text-xs text-violet-electric">{siteTextsFb}</p>}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Nom du site</label>
-            <input value={siteName} onChange={e => setSiteName(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Hero — Accroche</label>
-            <input value={heroEyebrow} onChange={e => setHeroEyebrow(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1 sm:col-span-2">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Hero — Description</label>
-            <textarea value={heroBody} onChange={e => setHeroBody(e.target.value)} rows={3}
-              className="w-full resize-none bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Hero — Bouton principal</label>
-            <input value={heroCtaLabel} onChange={e => setHeroCtaLabel(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Footer — Slogan</label>
-            <input value={footerTagline} onChange={e => setFooterTagline(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1 sm:col-span-2">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Footer — Copyright</label>
-            <input value={footerCopyright} onChange={e => setFooterCopyright(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
+          <TextField label="Nom du site" value={siteName} onChange={setSiteName} fallback={BRAND_NAME} />
+          <TextField label="Hero — Accroche" value={heroEyebrow} onChange={setHeroEyebrow} fallback={HERO_EYEBROW} />
+          <TextField label="Hero — Description" value={heroBody} onChange={setHeroBody} fallback={HERO_BODY} multiline wide />
+          <TextField label="Hero — Bouton principal" value={heroCtaLabel} onChange={setHeroCtaLabel} fallback={HERO_CTA} />
+          <TextField label="Footer — Slogan" value={footerTagline} onChange={setFooterTagline} fallback={FOOTER_TAGLINE} />
+          <TextField label="Footer — Copyright" value={footerCopyright} onChange={setFooterCopyright} fallback={COPYRIGHT_DEFAULT} wide />
         </div>
 
         {/* Navigation */}
-        <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/30 pt-2">Liens de navigation</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/30 pt-2">Liens de navigation (menu, bouton « Nouveautés » du hero, liens du footer)</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Lien Capsule</label>
-            <input value={navLabelCapsule} onChange={e => setNavLabelCapsule(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Lien Nouveautés</label>
-            <input value={navLabelNouveautes} onChange={e => setNavLabelNouveautes(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
+          <TextField label="Lien Capsule" value={navLabelCapsule} onChange={setNavLabelCapsule} fallback="Les classiques" />
+          <TextField label="Lien Nouveautés" value={navLabelNouveautes} onChange={setNavLabelNouveautes} fallback="Nouveautés" />
         </div>
 
         {/* Sections page d'accueil */}
-        <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/30 pt-2">Sections page d&apos;accueil</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/30 pt-2">Sections page d&apos;accueil (identiques à l&apos;onglet Sections)</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Capsule — Sous-titre</label>
-            <input value={secCapsuleEyebrow} onChange={e => setSecCapsuleEyebrow(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Capsule — Titre</label>
-            <input value={secCapsuleTitle} onChange={e => setSecCapsuleTitle(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Nouveautés — Sous-titre</label>
-            <input value={secNouveautesEyebrow} onChange={e => setSecNouveautesEyebrow(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
-          <div className="space-y-1">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-ivory/40">Section Nouveautés — Titre</label>
-            <input value={secNouveautesTitle} onChange={e => setSecNouveautesTitle(e.target.value)}
-              className="w-full bg-void border border-white/10 px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60" />
-          </div>
+          <TextField label="Section Capsule — Sous-titre" value={secCapsuleEyebrow} onChange={setSecCapsuleEyebrow} fallback="En vedette" />
+          <TextField label="Section Capsule — Titre" value={secCapsuleTitle} onChange={setSecCapsuleTitle} fallback="Les classiques" />
+          <TextField label="Section Nouveautés — Sous-titre" value={secNouveautesEyebrow} onChange={setSecNouveautesEyebrow} fallback="En vedette" />
+          <TextField label="Section Nouveautés — Titre" value={secNouveautesTitle} onChange={setSecNouveautesTitle} fallback="Les classiques" />
         </div>
 
         <button onClick={saveSiteTexts} disabled={pending}
           className="flex items-center gap-1.5 bg-violet-electric/15 px-4 py-2 font-mono text-xs text-violet-electric ring-1 ring-violet-electric/30 hover:bg-violet-electric/25 transition disabled:opacity-50">
           <Save className="h-3.5 w-3.5" /> Sauvegarder les textes
         </button>
+        {/* Retour aussi sous le bouton : sur mobile le haut du bloc est hors écran. */}
+        {siteTextsFb && <p role="status" className="font-mono text-xs text-violet-electric">{siteTextsFb}</p>}
       </Section>
 
       {/* Statut boutique */}

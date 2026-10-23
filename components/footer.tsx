@@ -3,10 +3,12 @@ import { getSetting } from "@/app/actions/settings"
 import { AGE_NOTE, BRAND_NAME, FOOTER_TAGLINE, publicText } from "@/lib/brand"
 
 export async function Footer() {
-  const [tagline, copyright, siteName] = await Promise.all([
+  const [tagline, copyright, siteName, navCapsule, navNouveautes] = await Promise.all([
     getSetting("footer_tagline"),
     getSetting("footer_copyright"),
     getSetting("site_name"),
+    getSetting("nav_label_capsule"),
+    getSetting("nav_label_nouveautes"),
   ])
 
   const footerTagline   = publicText(tagline, FOOTER_TAGLINE)
@@ -29,8 +31,8 @@ export async function Footer() {
         <div className="flex gap-12">
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
             <span className="mb-1 text-ivory/30">Boutique</span>
-            <Link href="/#vedette" className="hover:text-violet-electric">Nos produits</Link>
-            <Link href="/#nouveautes" className="hover:text-violet-electric">Nouveautés</Link>
+            <Link href="/#vedette" className="hover:text-violet-electric">{publicText(navCapsule, "Les classiques")}</Link>
+            <Link href="/#nouveautes" className="hover:text-violet-electric">{publicText(navNouveautes, "Nouveautés")}</Link>
           </div>
           <div className="flex flex-col gap-2 font-mono text-xs uppercase tracking-widest text-ivory/60">
             <span className="mb-1 text-ivory/30">Compte</span>
