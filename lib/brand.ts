@@ -19,23 +19,37 @@ export const FOOTER_TAGLINE =
 export const AGE_NOTE =
   "Produit réservé aux adultes. La nicotine crée une forte dépendance. Vente interdite aux moins de 18 ans."
 
-const LEGACY: Record<string, string> = {
-  "fullterps33": BRAND_NAME,
-  "ton plug bordelais depuis 2021": HERO_EYEBROW,
-  "\"ton plug bordelais depuis 2021\"": HERO_EYEBROW,
-  "que de la foudre la famille.": FOOTER_TAGLINE,
-  "édition capsule": "Les classiques",
-  "édition capsule — automne": HERO_EYEBROW,
-  "coupes larges, matières lourdes, silhouette orage. le streetwear pensé pour la rue, la nuit, et ce qui gronde au-dessus.": HERO_BODY,
-  "voir la collection": HERO_CTA,
-  "notre menu": HERO_CTA,
-  "\"notre menu\"": HERO_CTA,
-  "fraîchement débarqués": "Arrivages",
-  "fraîchement débarqué": "Arrivages",
+/**
+ * Termes explicitement liés aux stupéfiants, refusés dans les textes publics.
+ * Comparaison insensible à la casse et aux accents, sur mots entiers uniquement
+ * (« thc » dans un autre mot ne déclenche rien). Les mots courants ou à double
+ * sens (menu, plug, haze, gelato, pollen…) et l'ancienne marque ne sont plus
+ * filtrés, et il n'y a plus de remplacement automatique d'anciennes formulations.
+ */
+const FORBIDDEN_TERMS = [
+  "cannabis", "marijuana", "weed", "beuh", "thc", "kush", "skunk", "amnesia", "runtz",
+  "resine", "hashish", "haschich", "haschisch", "barrette", "savonnette",
+  "cocaine", "mdma", "ecstasy", "ecsta",
+] as const
+
+function normalize(text: string): string {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
 }
 
-const BANNED =
-  /full\s*terps|fullterps|\bplug\b|meet-?up|foudre la famille|streetwear|bordelais|\bbeuh\b|\bweed\b|\bcannabis\b|\bmarijuana\b|\bkush\b|\bhaze\b|\bskunk\b|\bamnesia\b|\bgelato\b|\bruntz\b|\bpollen\b|r[ée]sine|\bshit\b|coca[iï]ne|\bmdma\b|\becsta|\bthc\b|\bhashish\b|\bhaschich\b|\bbarrette\b|\bsavonnette\b/i
+// Pas de lookbehind (non supporté par les anciens Safari iOS) : le groupe 1 capture le séparateur.
+const FORBIDDEN_RE = new RegExp(`(^|[^a-z0-9])((?:${FORBIDDEN_TERMS.join("|")})s?)(?=[^a-z0-9]|$)`)
+
+/** Premier terme non autorisé trouvé dans le texte (tel qu'écrit), ou null. */
+export function findForbiddenTerm(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null
+  const norm = normalize(value)
+  const m = FORBIDDEN_RE.exec(norm)
+  if (!m) return null
+  // NFD + suppression des diacritiques peut décaler les index : on relit le mot dans le texte d'origine si possible.
+  const original = value.normalize("NFC")
+  const start = m.index + m[1].length
+  return original.length === norm.length ? original.slice(start, start + m[2].length) : m[2]
+}
 
 /** Texte affiché en vitrine. `showStored` (session admin) montre la valeur enregistrée telle quelle. */
 export function visibleShopText(value: unknown, fallback: string, showStored = false): string {
@@ -43,8 +57,7 @@ export function visibleShopText(value: unknown, fallback: string, showStored = f
   const trimmed = value.trim()
   if (!trimmed) return fallback
   if (showStored) return trimmed
-  if (Object.prototype.hasOwnProperty.call(LEGACY, trimmed.toLowerCase())) return fallback
-  if (BANNED.test(trimmed)) return fallback
+  if (findForbiddenTerm(trimmed)) return fallback
   return trimmed
 }
 
@@ -56,6 +69,5 @@ export function isForbiddenCopy(value: unknown): boolean {
   if (typeof value !== "string") return false
   const trimmed = value.trim()
   if (!trimmed) return false
-  if (LEGACY[trimmed.toLowerCase()]) return true
-  return BANNED.test(trimmed)
+  return findForbiddenTerm(trimmed) !== null
 }

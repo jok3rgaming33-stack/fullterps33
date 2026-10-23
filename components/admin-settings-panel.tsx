@@ -15,7 +15,7 @@ import {
 } from "@/app/actions/settings"
 import { broadcastPush } from "@/app/actions/push"
 import { useRouter } from "next/navigation"
-import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, publicText } from "@/lib/brand"
+import { BRAND_NAME, FOOTER_TAGLINE, HERO_BODY, HERO_CTA, HERO_EYEBROW, findForbiddenTerm, publicText } from "@/lib/brand"
 import { notifyAdminChange } from "@/lib/admin-events"
 
 const NEWS_TYPES = ["info", "warning", "alert", "promo"] as const
@@ -72,8 +72,8 @@ function rawText(value: unknown, fallback: string): string {
 
 /**
  * Champ texte + aperçu de ce que la vitrine affichera réellement. lib/brand.ts
- * (publicText) remplace les textes vides, interdits ou d'anciennes formulations
- * par un texte par défaut : on le signale ici au lieu de laisser croire que la
+ * (publicText) remplace les textes vides ou contenant un terme explicite lié aux
+ * stupéfiants par un texte par défaut : on le signale ici au lieu de laisser croire que la
  * sauvegarde n'a pas marché.
  */
 function TextField({ label, value, onChange, fallback, multiline = false, wide = false }: {
@@ -81,6 +81,7 @@ function TextField({ label, value, onChange, fallback, multiline = false, wide =
 }) {
   const shown = publicText(value, fallback)
   const replaced = shown !== value.trim()
+  const term = findForbiddenTerm(value)
   const cls = "w-full bg-void border px-3 py-2 font-mono text-sm text-ivory outline-none focus:border-violet-electric/60 " +
     (replaced ? "border-signal/50" : "border-white/10")
   return (
@@ -92,7 +93,7 @@ function TextField({ label, value, onChange, fallback, multiline = false, wide =
       {replaced && (
         <p className="font-mono text-[10px] leading-relaxed text-signal" data-replaced-note>
           {value.trim()
-            ? <>Enregistré tel quel : l&apos;aperçu admin l&apos;affiche. Les visiteurs voient « {shown} » tant que cette formulation est ancienne ou interdite.</>
+            ? <>Terme non autorisé : « {term ?? value.trim()} ». Les visiteurs verront « {shown} » à la place (l&apos;aperçu admin montre le texte enregistré).</>
             : <>Champ vide : l&apos;aperçu et les visiteurs affichent « {shown} ».</>}
         </p>
       )}
@@ -143,7 +144,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
       ["Section Capsule — Sous-titre", secCapsuleEyebrow, "En vedette"], ["Section Capsule — Titre", secCapsuleTitle, "Les classiques"],
       ["Section Nouveautés — Sous-titre", secNouveautesEyebrow, "En vedette"], ["Section Nouveautés — Titre", secNouveautesTitle, "Les classiques"],
     ]
-    // Textes que la vitrine remplacera (filtre de lib/brand.ts, ancienne formulation ou champ vide).
+    // Textes que la vitrine remplacera (terme non autorisé ou champ vide).
     const replaced = texts.filter(([, v, fb]) => publicText(v, fb) !== v.trim()).map(([l]) => l)
     setSiteTextsFb("Sauvegarde en cours…")
     startTransition(async () => {
@@ -168,7 +169,7 @@ export function AdminSettingsPanel({ settings, news: initialNews, cartConfig: in
           "Textes enregistrés" +
           (missing.length ? ` — section(s) introuvable(s) : ${missing.join(", ")} (voir onglet Sections)` : "") +
           (replaced.length
-            ? `. L'aperçu admin est à jour. Pas encore visibles pour les visiteurs : ${replaced.join(", ")}.`
+            ? `. Remplacé(s) par le texte par défaut pour les visiteurs (terme non autorisé ou champ vide) : ${replaced.join(", ")}.`
             : ". Ils sont visibles en vitrine."),
         )
         setTimeout(() => setSiteTextsFb(null), replaced.length || missing.length ? 10000 : 3000)
