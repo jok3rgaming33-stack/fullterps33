@@ -10,9 +10,9 @@ import {
 } from "react"
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react"
 import { BlobMedia } from "@/components/blob-media"
+import { ProductBadges } from "@/components/product-badges"
 import { ProductModal } from "@/components/product-modal"
-import { getBadge } from "@/lib/badges"
-import { badgeStyles, type Product } from "@/lib/types"
+import type { Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 
 function priceLabel(product: Product): string {
@@ -24,21 +24,34 @@ function priceLabel(product: Product): string {
   return prices.length > 1 ? `dès ${label}` : label
 }
 
-function computeLayout(width: number, n: number) {
-  const cardW =
-    width < 380 ? 148 : width < 480 ? 164 : width < 768 ? 184 : width < 1024 ? 204 : 220
-  const angle = Math.PI / Math.max(n, 3)
-  const minR = (cardW * 0.64) / Math.tan(angle)
-  const rFromWidth = width * (width < 480 ? 0.38 : width < 768 ? 0.36 : 0.32)
-  const radius = Math.round(Math.min(Math.max(minR, rFromWidth, 148), 400))
-  const stageH = Math.round(
-    Math.min(560, Math.max(320, cardW * 1.58 + (width < 480 ? 78 : 120))),
-  )
-  return { cardW, radius, stageH }
-}
-
 function coverOf(product: Product) {
   return product.image || product.media?.[0] || null
+}
+
+function computeLayout(width: number) {
+  const cardW = Math.round(Math.min(220, Math.max(136, width * 0.46)))
+  const spread = Math.min(cardW * 0.78, Math.max(72, (width - cardW) / 2 - 12))
+  const stageH = cardW + 132
+  return { cardW, spread, stageH }
+}
+
+/** Projection 2D : pas de preserve-3d, qui s'aplatit et coupe les cartes sur mobile. */
+function place(index: number, rotation: number, n: number, spread: number) {
+  const step = 360 / n
+  let ang = index * step + rotation
+  ang = ((ang % 360) + 360) % 360
+  if (ang > 180) ang -= 360
+  const rad = (ang * Math.PI) / 180
+  const depth = Math.cos(rad)
+  const hidden = Math.abs(ang) > 108
+  return {
+    x: Math.sin(rad) * spread,
+    scale: 0.8 + 0.2 * Math.max(0, depth),
+    opacity: hidden ? 0 : 0.55 + 0.45 * Math.max(0, depth),
+    zIndex: Math.round(100 + depth * 40),
+    hidden,
+    front: Math.abs(ang) < step / 2,
+  }
 }
 
 export function ProductOrbitCarousel({ products }: { products: Product[] }) {
@@ -51,7 +64,7 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
   const [active, setActive] = useState(0)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [inView, setInView] = useState(true)
-  const [layout, setLayout] = useState({ cardW: 164, radius: 220, stageH: 380 })
+  const [layout, setLayout] = useState({ cardW: 168, spread: 110, stageH: 276 })
   const [opened, setOpened] = useState<Product | null>(null)
 
   const dragRef = useRef<{
@@ -63,22 +76,15 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
   } | null>(null)
   const suppressClickRef = useRef(false)
   const rotRef = useRef(0)
-  const playingRef = useRef(playing)
-  const inViewRef = useRef(inView)
   const frameRef = useRef<number | null>(null)
   const lastTs = useRef<number | null>(null)
 
   useEffect(() => { rotRef.current = rotation }, [rotation])
-  useEffect(() => { playingRef.current = playing }, [playing])
-  useEffect(() => { inViewRef.current = inView }, [inView])
 
   useLayoutEffect(() => {
     const el = rootRef.current
     if (!el) return
-    const sync = () => {
-      const w = el.clientWidth || window.innerWidth
-      setLayout(computeLayout(w, Math.max(n, 1)))
-    }
+    const sync = () => setLayout(computeLayout(el.clientWidth || window.innerWidth))
     sync()
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sync) : null
     ro?.observe(el)
@@ -87,7 +93,7 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
       ro?.disconnect()
       window.removeEventListener("resize", sync)
     }
-  }, [n])
+  }, [])
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -105,8 +111,8 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
     const el = rootRef.current
     if (!el || typeof IntersectionObserver === "undefined") return
     const io = new IntersectionObserver(
-      ([entry]) => setInView(!!entry?.isIntersecting),
-      { rootMargin: "80px", threshold: 0.12 },
+      ([entry]) => setInView(entry?.isIntersecting ?? false),
+      { rootMargin: "40px", threshold: 0.2 },
     )
     io.observe(el)
     return () => io.disconnect()
@@ -128,13 +134,13 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
   }, [n, step])
 
   useEffect(() => {
-    if (reducedMotion || n < 2) return
+    if (reducedMotion || n < 2 || !playing || !inView) return
     const tick = (ts: number) => {
       if (lastTs.current == null) lastTs.current = ts
       const dt = Math.min(0.05, (ts - lastTs.current) / 1000)
       lastTs.current = ts
-      if (playingRef.current && inViewRef.current && !dragRef.current) {
-        const next = rotRef.current + 10 * dt
+      if (!dragRef.current) {
+        const next = rotRef.current - 18 * dt
         rotRef.current = next
         setRotation(next)
       }
@@ -145,13 +151,13 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
       if (frameRef.current) cancelAnimationFrame(frameRef.current)
       lastTs.current = null
     }
-  }, [n, reducedMotion])
+  }, [n, reducedMotion, playing, inView])
 
   useEffect(() => {
-    if (n < 1) return
-    const norm = ((rotation % 360) + 360) % 360
-    const idx = Math.round((-norm / step + n * 20) % n) % n
-    setActive(idx)
+    if (n < 1 || step === 0) return
+    const norm = (((-rotation) % 360) + 360) % 360
+    const idx = Math.round(norm / step) % n
+    setActive((cur) => (cur === idx ? cur : idx))
   }, [rotation, n, step])
 
   const onPointerDown = (e: ReactPointerEvent) => {
@@ -180,7 +186,7 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
     if (d.axis !== "h") return
     if (Math.abs(dx) > 4) d.moved = true
     e.preventDefault()
-    const next = d.rot + dx * 0.42
+    const next = d.rot + dx * 0.45
     rotRef.current = next
     setRotation(next)
   }
@@ -194,14 +200,12 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
     if (e) {
       try { stageRef.current?.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
     }
-    if (wasH && moved) {
+    if (wasH && moved && n > 0) {
       suppressClickRef.current = true
       window.setTimeout(() => { suppressClickRef.current = false }, 280)
-      if (n > 0) {
-        const norm = ((rotRef.current % 360) + 360) % 360
-        const idx = Math.round((-norm / step + n * 20) % n) % n
-        snapTo(idx)
-      }
+      const norm = (((-rotRef.current) % 360) + 360) % 360
+      const idx = Math.round(norm / step) % n
+      snapTo(idx)
     }
   }
 
@@ -211,83 +215,58 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
     snapTo(active + dir)
   }
 
-  const openActive = () => {
-    if (suppressClickRef.current) return
-    const product = products[active]
-    if (product) setOpened(product)
-  }
-
   if (n === 0) return null
 
   const current = products[active] ?? products[0]
-  const { cardW, radius, stageH } = layout
+  const { cardW, spread, stageH } = layout
+  const ease = dragging || playing ? "none" : "transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 420ms ease"
 
   return (
     <div ref={rootRef} className="relative w-full select-none">
       {n === 1 ? (
-        <OrbitFace
-          product={products[0]}
-          front
-          width={Math.min(240, cardW + 40)}
-          className="mx-auto"
-          onOpen={() => setOpened(products[0])}
-        />
+        <Face product={products[0]} width={Math.min(240, cardW + 24)} front className="mx-auto" onOpen={() => setOpened(products[0])} />
       ) : (
         <div
-          className="relative mx-auto w-full overflow-hidden"
-          style={{ height: stageH, clipPath: "inset(0)", WebkitClipPath: "inset(0)", isolation: "isolate", contain: "paint" }}
+          ref={stageRef}
+          className="relative mx-auto w-full touch-pan-y"
+          style={{ height: stageH }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Carousel produits"
         >
-          <div
-            ref={stageRef}
-            className="absolute inset-0 touch-pan-y"
-            style={{ perspective: "900px", perspectiveOrigin: "50% 45%" }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            role="region"
-            aria-roledescription="carousel"
-            aria-label="Carousel produits"
-          >
-            <div aria-hidden className="pointer-events-none absolute inset-x-[12%] bottom-[6%] h-16 rounded-[100%] bg-violet-electric/20 blur-2xl sm:h-24 sm:blur-3xl" />
-            <div aria-hidden className="pointer-events-none absolute left-1/2 top-[40%] h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-electric/15 blur-3xl" />
-            <div
-              className="absolute inset-0"
-              style={{
-                transformStyle: "preserve-3d",
-                transform: `translateZ(-${Math.round(radius * 0.08)}px) rotateX(3deg) rotateY(${rotation}deg)`,
-                transition: dragging || playing ? "none" : "transform 420ms cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            >
-              {products.map((product, i) => {
-                const angle = i * step
-                return (
-                  <div
-                    key={product.id}
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                    style={{
-                      width: cardW,
-                      transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
-                      transformStyle: "preserve-3d",
-                      zIndex: i === active ? 5 : 1,
-                      pointerEvents: "none",
-                      backfaceVisibility: "hidden",
-                    }}
-                    aria-hidden
-                  >
-                    <OrbitFace product={product} front={i === active} width={cardW} />
-                  </div>
-                )
-              })}
-            </div>
-            <button
-              type="button"
-              className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-[46%] cursor-pointer rounded-3xl bg-transparent"
-              style={{ width: cardW, height: Math.round(cardW * 1.38) }}
-              aria-label={current ? `Ouvrir ${current.name}` : "Ouvrir le produit"}
-              onClick={(e) => { e.stopPropagation(); openActive() }}
-            />
-          </div>
+          {products.map((product, i) => {
+            const spot = place(i, rotation, n, spread)
+            return (
+              <button
+                key={product.id}
+                type="button"
+                aria-hidden={spot.hidden}
+                aria-label={product.name}
+                disabled={spot.hidden}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (suppressClickRef.current || spot.hidden) return
+                  if (spot.front) setOpened(product)
+                  else { setPlaying(false); snapTo(i) }
+                }}
+                className="absolute left-1/2 top-1/2 text-left"
+                style={{
+                  width: cardW,
+                  zIndex: spot.zIndex,
+                  opacity: spot.opacity,
+                  pointerEvents: spot.hidden ? "none" : "auto",
+                  transform: `translate(-50%, -50%) translateX(${spot.x}px) scale(${spot.scale})`,
+                  transition: ease,
+                }}
+              >
+                <Face product={product} width={cardW} front={spot.front} />
+              </button>
+            )
+          })}
         </div>
       )}
 
@@ -334,14 +313,12 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
         </div>
       )}
 
-      {opened && (
-        <ProductModal product={opened} isOpen onClose={() => setOpened(null)} />
-      )}
+      {opened && <ProductModal product={opened} isOpen onClose={() => setOpened(null)} />}
     </div>
   )
 }
 
-function OrbitFace({
+function Face({
   product,
   front,
   width,
@@ -354,45 +331,22 @@ function OrbitFace({
   className?: string
   onOpen?: () => void
 }) {
-  const out = product.status === "rupture" || product.status === "bientot"
   const cover = coverOf(product)
-  const badgeKey = product.badges?.[0]
-  const badge = badgeKey ? getBadge(badgeKey) : null
-  const Tag = onOpen ? "button" : "div"
-
-  return (
-    <Tag
-      type={onOpen ? "button" : undefined}
-      onClick={onOpen}
-      className={`relative flex flex-col overflow-hidden rounded-2xl border bg-void/95 p-2 text-left shadow-xl backdrop-blur-md transition-[box-shadow,border-color,opacity] duration-300 sm:rounded-3xl sm:p-2.5 ${className} ${
-        out
-          ? "border-white/10 opacity-50"
-          : front
-            ? "border-violet-electric/70 opacity-100 shadow-[0_0_36px_rgba(179,85,255,0.45)]"
-            : "border-white/10 opacity-75"
-      }`}
-      style={{ width, backfaceVisibility: "hidden" }}
-    >
-      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface sm:rounded-2xl">
-        {cover ? (
-          <BlobMedia src={cover} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-violet-electric/30">
-            <svg viewBox="0 0 100 100" className="h-12 w-12">
-              <path d="M35 15 L50 8 L65 15 L78 25 L70 35 L65 30 L65 90 L35 90 L35 30 L30 35 L22 25 Z" fill="currentColor" />
-            </svg>
-          </div>
-        )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-void to-transparent" />
-        {badge ? (
-          <span className={`absolute right-1.5 top-1.5 rounded-full border px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wide ${badge.color} ${badge.text} ${badge.border}`}>
-            {badge.label}
-          </span>
-        ) : product.badge ? (
-          <span className={`clip-tag absolute right-1.5 top-1.5 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase ${badgeStyles[product.badge] ?? "bg-white/10 text-ivory"}`}>
-            {product.badge}
-          </span>
-        ) : null}
+  const body = (
+    <>
+      <div className="relative">
+        <div className="aspect-square w-full overflow-hidden rounded-xl bg-surface sm:rounded-2xl">
+          {cover ? (
+            <BlobMedia src={cover} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-violet-electric/30">
+              <svg viewBox="0 0 100 100" className="h-12 w-12">
+                <path d="M35 15 L50 8 L65 15 L78 25 L70 35 L65 30 L65 90 L35 90 L35 30 L30 35 L22 25 Z" fill="currentColor" />
+              </svg>
+            </div>
+          )}
+        </div>
+        <ProductBadges product={product} compact />
       </div>
       <div className="mt-1.5 min-w-0 px-0.5 pb-0.5">
         <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-violet-electric sm:text-[10px]">
@@ -402,6 +356,20 @@ function OrbitFace({
           {product.name}
         </h3>
       </div>
-    </Tag>
+    </>
   )
+  const shell = `flex w-full flex-col overflow-visible rounded-2xl border bg-void/95 p-2 text-left shadow-xl sm:rounded-3xl sm:p-2.5 ${className} ${
+    front
+      ? "border-violet-electric/70 shadow-[0_0_32px_rgba(179,85,255,0.4)]"
+      : "border-white/15"
+  }`
+
+  if (onOpen) {
+    return (
+      <button type="button" onClick={onOpen} className={shell} style={{ width }}>
+        {body}
+      </button>
+    )
+  }
+  return <div className={shell} style={{ width }}>{body}</div>
 }

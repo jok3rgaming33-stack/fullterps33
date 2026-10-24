@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { badgeStyles, findVariantForSize, type Product } from "@/lib/types"
+import { ProductBadges } from "@/components/product-badges"
+import { findVariantForSize, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
 import { BlobMedia } from "@/components/blob-media"
@@ -35,13 +36,7 @@ export function ProductCard({ product }: { product: Product }) {
     <ProductModal product={product} isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     <div className="clip-card group flex flex-col border border-white/10 bg-surface transition hover:border-violet-electric/50 hover:shadow-glow-sm">
       <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-br from-surface2 to-void">
-        {product.badge && (
-          <span
-            className={`clip-tag absolute left-3 top-3 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wide ${badgeStyles[product.badge]}`}
-          >
-            {product.badge}
-          </span>
-        )}
+        <ProductBadges product={product} />
 
         {currentMedia ? (
           <BlobMedia

@@ -13,7 +13,7 @@ export async function ProductSection({ config }: { config: ShopSection }) {
   const title   = visibleShopText(config.title, "Les classiques", admin)
 
   return (
-    <section id={config.slug} className="mx-auto max-w-[1200px] overflow-hidden px-4 py-12 sm:px-6 sm:py-16">
+    <section id={config.slug} className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 sm:py-16">
       <div className="mb-8 flex items-end justify-between border-b border-white/10 pb-4">
         <div>
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-violet-electric">

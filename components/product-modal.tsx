@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
-import { badgeStyles, findVariantForSize, type Product } from "@/lib/types"
+import { ProductBadges } from "@/components/product-badges"
+import { findVariantForSize, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
 import { BlobMedia } from "@/components/blob-media"
@@ -75,11 +76,7 @@ export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
 
         {/* Colonne médias */}
         <div className="relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-surface2 to-void md:w-80 md:aspect-auto md:h-auto">
-          {product.badge && (
-            <span className={`clip-tag absolute left-3 top-3 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wide ${badgeStyles[product.badge]}`}>
-              {product.badge}
-            </span>
-          )}
+          <ProductBadges product={product} />
 
           {currentMedia ? (
             <BlobMedia
