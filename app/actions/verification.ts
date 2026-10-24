@@ -6,6 +6,10 @@ import { nanoid } from 'nanoid'
 import { getCustomerToken } from '@/lib/auth'
 import { isAdmin } from '@/lib/auth'
 
+function verificationPrefix(token: string): string {
+  return `verifications/${token.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32)}/`
+}
+
 export type VerificationStatus = 'pending' | 'validated' | 'rejected'
 
 export interface UserVerification {
@@ -25,8 +29,8 @@ export type VerificationRow = UserVerification & { pseudo: string }
 /**
  * Returns true if the user hasn't submitted a verification yet (first order requirement)
  */
-export async function needsVerification(token: string | undefined | null): Promise<boolean> {
-  const t = token?.trim()
+export async function needsVerification(_token?: string | null): Promise<boolean> {
+  const t = await getCustomerToken()
   if (!t) return false
   try {
     const rows = await sql`
@@ -42,12 +46,19 @@ export async function needsVerification(token: string | undefined | null): Promi
  * Save a completed verification (called after upload)
  */
 export async function submitVerification(input: {
-  token: string
+  token?: string
   photoPathname: string
   videoPathname: string
 }): Promise<{ ok: boolean; error?: string }> {
-  const t = input.token?.trim()
-  if (!t || !input.photoPathname || !input.videoPathname) {
+  const t = await getCustomerToken()
+  const prefix = t ? verificationPrefix(t) : ""
+  if (
+    !t ||
+    !input.photoPathname ||
+    !input.videoPathname ||
+    !input.photoPathname.includes(prefix) ||
+    !input.videoPathname.includes(prefix)
+  ) {
     return { ok: false, error: "Vérification incomplète." }
   }
   try {
@@ -64,7 +75,7 @@ export async function submitVerification(input: {
     `
     // Notification admin — nouvelle vérification KYC
     try {
-      const { sendAdminPush } = await import("@/app/actions/push")
+      const { sendAdminPush } = await import("@/lib/push-send")
       await sendAdminPush("Vérification KYC", `Un client a soumis ses documents KYC.`)
     } catch { /* optionnel */ }
 

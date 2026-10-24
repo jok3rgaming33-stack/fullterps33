@@ -267,7 +267,7 @@ export async function createOrderThread(
   }
 
   try {
-    const { sendAdminPush } = await import("@/app/actions/push")
+    const { sendAdminPush } = await import("@/lib/push-send")
     await sendAdminPush("Nouvelle commande", `${name} vient de passer une commande (#${thread.id}).`)
   } catch { /* push optionnel */ }
 
@@ -309,7 +309,7 @@ export async function createGeneralInquiryThread(input: {
   `
 
   try {
-    const { sendAdminPush } = await import("@/app/actions/push")
+    const { sendAdminPush } = await import("@/lib/push-send")
     await sendAdminPush(`Nouveau message de ${customer.pseudo}`, previewText(body))
   } catch { /* push optionnel */ }
 
@@ -441,14 +441,14 @@ export async function addMessage(threadId: number, sender: "client" | "vendeur",
       type Row = { user_token: string | null }
       const rows = (await sql`select user_token from order_threads where id = ${threadId} limit 1`) as unknown as Row[]
       if (rows[0]?.user_token) {
-        const { sendPushToUser } = await import("@/app/actions/push")
+        const { sendPushToUser } = await import("@/lib/push-send")
         await sendPushToUser(rows[0].user_token, "Nouveau message", previewText(text), "/compte")
       }
     } catch { /* push optionnel */ }
   } else {
     await sql`update order_threads set unread_admin = unread_admin + 1 where id = ${threadId}`
     try {
-      const { sendAdminPush } = await import("@/app/actions/push")
+      const { sendAdminPush } = await import("@/lib/push-send")
       await sendAdminPush(`Message client #${threadId}`, previewText(text))
     } catch { /* optionnel */ }
   }
@@ -547,7 +547,7 @@ export async function updateThreadStatus(id: number, status: string, extra?: { c
     let pushSent = 0
     if (current.user_token) {
       try {
-        const { sendPushToUser } = await import("@/app/actions/push")
+        const { sendPushToUser } = await import("@/lib/push-send")
         pushSent = await sendPushToUser(
           current.user_token,
           `Commande #${id} — ${statusMeta(nextKey).label}`,
@@ -618,7 +618,7 @@ export async function notifyArrivingInMinutes(threadId: number, minutes = 5) {
   `
   if (current.user_token) {
     try {
-      const { sendPushToUser } = await import("@/app/actions/push")
+      const { sendPushToUser } = await import("@/lib/push-send")
       await sendPushToUser(current.user_token, `Commande #${threadId}`, body, "/compte")
     } catch { /* push optionnel */ }
   }

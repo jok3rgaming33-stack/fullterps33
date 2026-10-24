@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { isAdmin } from "@/lib/auth"
+import { hasAccount } from "@/lib/shop-access"
 import { revalidatePath } from "next/cache"
 
 export type PromoCode = {
@@ -21,6 +22,7 @@ export type PromoResult = {
 }
 
 export async function validatePromoCode(code: string, subtotal: number): Promise<PromoResult> {
+  if (!(await hasAccount())) return { ok: false, message: "Connecte-toi pour utiliser un code." }
   const normalized = code.trim().toUpperCase()
   if (!normalized) return { ok: false, message: "Entrez un code" }
 

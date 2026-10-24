@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { isAdmin } from "@/lib/auth"
+import { hasAccount } from "@/lib/shop-access"
 import { revalidatePath } from "next/cache"
 import { isForbiddenCopy, publicText } from "@/lib/brand"
 import {
@@ -35,12 +36,22 @@ function unwrapQuoted(value: any): any {
   return v
 }
 
-export async function getSetting(key: string): Promise<any> {
+/** Lecture interne. Ne pas exporter : un export de ce fichier devient appelable sans page. */
+async function readSetting(key: string): Promise<any> {
   const rows = await sql`select value from app_settings where key = ${key}`
   return unwrapQuoted(rows[0]?.value ?? null)
 }
 
+// Seul le nom public (déjà dans le titre de l'onglet) est lisible sans compte.
+const PUBLIC_SETTING_KEYS = new Set(["site_name"])
+
+export async function getSetting(key: string): Promise<any> {
+  if (!PUBLIC_SETTING_KEYS.has(key) && !(await hasAccount())) return null
+  return readSetting(key)
+}
+
 export async function getAllSettings(): Promise<Record<string, any>> {
+  if (!(await isAdmin())) return {}
   const rows = await sql`select key, value from app_settings`
   return Object.fromEntries(rows.map((r: any) => [r.key, unwrapQuoted(r.value)]))
 }
@@ -94,7 +105,8 @@ const DEFAULT_CART_CONFIG: CartConfig = {
 const DEFAULT_ORIGIN: MapOrigin = { lat: 44.8378, lng: -0.5792, label: "Bordeaux centre" }
 
 export async function getCartConfig(): Promise<CartConfig> {
-  const row = await getSetting("cart_config")
+  if (!(await hasAccount())) return { minDeliveryAmount: 0, deliverySlots: [], meetupSlots: [] }
+  const row = await readSetting("cart_config")
   if (!row) return DEFAULT_CART_CONFIG
   return { ...DEFAULT_CART_CONFIG, ...(row as object) } as CartConfig
 }
@@ -104,7 +116,8 @@ export async function setCartConfig(config: CartConfig): Promise<void> {
 }
 
 export async function getMapOrigin(): Promise<MapOrigin> {
-  const row = await getSetting("map_origin")
+  if (!(await hasAccount())) return { lat: 0, lng: 0 }
+  const row = await readSetting("map_origin")
   if (!row) return DEFAULT_ORIGIN
   return { ...DEFAULT_ORIGIN, ...(row as object) } as MapOrigin
 }
@@ -128,7 +141,8 @@ const DEFAULT_SECTIONS: ShopSection[] = [
 ]
 
 export async function getShopSections(): Promise<ShopSection[]> {
-  const row = await getSetting("shop_sections")
+  if (!(await hasAccount())) return []
+  const row = await readSetting("shop_sections")
   if (!row || !Array.isArray(row) || row.length === 0) return DEFAULT_SECTIONS
   return row as ShopSection[]
 }
@@ -155,7 +169,7 @@ export async function setSectionHeading(
   title: string,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!await isAdmin()) return { ok: false, error: "Non autorisé" }
-  const row = await getSetting("shop_sections")
+  const row = await readSetting("shop_sections")
   const current: ShopSection[] = Array.isArray(row) && row.length > 0 ? row : DEFAULT_SECTIONS
   if (!current.some((s) => s.slug === slug)) return { ok: false, error: `Section « ${slug} » introuvable` }
   const next = current.map((s) => (s.slug === slug ? { ...s, eyebrow, title } : s))
@@ -240,13 +254,14 @@ export async function saveSiteTextsAction(
 
 /** Texte publié (formulations interdites retirées). Tableau vide = rien à lire. */
 export async function getPublicSiteRules(): Promise<SiteRule[]> {
-  const { rules } = readStoredRules(await getSetting(SITE_RULES_KEY))
+  const { rules } = readStoredRules(await readSetting(SITE_RULES_KEY))
   return publicSiteRules(rules)
 }
 
 /** Brouillon admin, y compris une liste volontairement vide. */
 export async function getEditableSiteRules(): Promise<SiteRule[]> {
-  const { rules } = readStoredRules(await getSetting(SITE_RULES_KEY))
+  if (!(await isAdmin())) return []
+  const { rules } = readStoredRules(await readSetting(SITE_RULES_KEY))
   return rules
 }
 
@@ -278,6 +293,7 @@ export type NewsItem = {
 }
 
 export async function listNews(onlyActive = false): Promise<NewsItem[]> {
+  if (!(await isAdmin())) return []
   const rows = onlyActive
     ? await sql`select * from news where active = true order by created_at desc`
     : await sql`select * from news order by created_at desc`
@@ -293,6 +309,7 @@ export async function listNews(onlyActive = false): Promise<NewsItem[]> {
 }
 
 export async function getActivePopup(): Promise<NewsItem | null> {
+  if (!(await hasAccount())) return null
   const rows = await sql`
     select * from news where active = true and popup = true order by created_at desc limit 1
   `

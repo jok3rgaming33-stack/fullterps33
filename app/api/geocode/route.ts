@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getMapOrigin } from "@/app/actions/settings"
+import { hasAccount } from "@/lib/shop-access"
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371
@@ -25,6 +26,9 @@ async function fromFeature(feature: {
 }
 
 export async function GET(req: NextRequest) {
+  if (!(await hasAccount())) {
+    return NextResponse.json({ found: false, error: "Connecte-toi pour vérifier une adresse." }, { status: 401 })
+  }
   const q = req.nextUrl.searchParams.get("q")?.trim()
   const latQ = req.nextUrl.searchParams.get("lat")
   const lngQ = req.nextUrl.searchParams.get("lng")

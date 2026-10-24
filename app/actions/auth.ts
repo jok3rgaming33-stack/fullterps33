@@ -104,7 +104,7 @@ export async function registerUser(acceptedVersion?: string): Promise<AuthResult
 
     // Notification admin — nouveau client
     try {
-      const { sendAdminPush } = await import('@/app/actions/push')
+      const { sendAdminPush } = await import('@/lib/push-send')
       await sendAdminPush('Nouveau client', `${pseudo} vient de créer un compte.`)
     } catch { /* optionnel */ }
 

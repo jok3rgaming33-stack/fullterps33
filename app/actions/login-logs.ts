@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers"
 import { sql } from "@/lib/db"
-import { isAdmin } from "@/lib/auth"
+import { getCustomerToken, isAdmin } from "@/lib/auth"
 
 export type LoginLogRow = {
   id: number
@@ -51,7 +51,8 @@ function clientIp(h: Headers): string | null {
 
 export async function recordLogin(token: string) {
   const userToken = token?.trim()
-  if (!userToken) return
+  const session = await getCustomerToken()
+  if (!userToken || session !== userToken) return
   try {
     await ensureLoginSchema()
     const h = await headers()
@@ -83,7 +84,8 @@ export async function recordLogin(token: string) {
 
 export async function recordLogout(token: string) {
   const userToken = token?.trim()
-  if (!userToken) return
+  const session = await getCustomerToken()
+  if (!userToken || session !== userToken) return
   try {
     await ensureLoginSchema()
     await sql`

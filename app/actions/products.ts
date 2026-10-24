@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { isAdmin } from "@/lib/auth"
+import { hasAccount } from "@/lib/shop-access"
 import { del } from "@vercel/blob"
 import { revalidatePath } from "next/cache"
 import type { Product, ProductVariant, DiscountType } from "@/lib/types"
@@ -61,6 +62,7 @@ function genId(name: string): string {
 // ---------------------------------------------------------------------------
 
 export async function listProducts(section?: string): Promise<Product[]> {
+  if (!(await hasAccount())) return []
   const rows = section
     ? await sql`select * from products where section = ${section} order by sort_order asc, created_at desc`
     : await sql`select * from products order by sort_order asc, created_at desc`
@@ -68,6 +70,7 @@ export async function listProducts(section?: string): Promise<Product[]> {
 }
 
 export async function getProduct(id: string): Promise<Product | null> {
+  if (!(await hasAccount())) return null
   const rows = await sql`select * from products where id = ${id}`
   if (!rows.length) return null
   return rowToProduct(rows[0] as Record<string, unknown>)

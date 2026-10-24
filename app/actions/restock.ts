@@ -3,7 +3,7 @@
 import { sql } from "@/lib/db"
 import { getCustomerToken } from "@/lib/auth"
 import { isAdmin } from "@/lib/auth"
-import { sendPushToUser } from "@/app/actions/push"
+import { sendPushToUser } from "@/lib/push-send"
 import { revalidatePath } from "next/cache"
 
 type RestockRow = {

@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { getCustomerToken, isAdmin } from "@/lib/auth"
+import { hasAccount } from "@/lib/shop-access"
 import { revalidatePath } from "next/cache"
 import {
   averageScore,
@@ -272,6 +273,7 @@ export async function getRatableProducts(threadId?: number): Promise<RatableProd
 }
 
 export async function getProductRatingSummaries(productIds: string[]): Promise<Record<string, ProductRatingSummary>> {
+  if (!(await hasAccount())) return {}
   const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))]
   if (!ids.length) return {}
   try {
@@ -298,6 +300,7 @@ export async function getProductRatingSummaries(productIds: string[]): Promise<R
 }
 
 export async function getProductRatingDetails(productId: string): Promise<ProductRatingDetail[]> {
+  if (!(await hasAccount())) return []
   const id = productId?.trim()
   if (!id) return []
   await ensureRatingsSchema()

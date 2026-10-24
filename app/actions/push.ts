@@ -3,6 +3,7 @@
 import webpush from 'web-push'
 import { sql } from '@/lib/db'
 import { getCustomerToken, isAdmin } from '@/lib/auth'
+import { hasAccount } from '@/lib/shop-access'
 
 type PushRow = { endpoint: string; p256dh: string; auth: string }
 
@@ -16,9 +17,10 @@ export async function subscribePush(sub: {
   endpoint: string
   keys: { p256dh: string; auth: string }
 }): Promise<{ ok: boolean }> {
+  if (!(await hasAccount())) return { ok: false }
   const [token, admin] = await Promise.all([getCustomerToken(), isAdmin()])
 
-  // Ni client connecté ni admin → refus
+  // Ni client connecté ni admin → refus (un livreur n'abonne pas l'admin)
   if (!token && !admin) return { ok: false }
 
   const userToken = token ?? 'admin'
@@ -37,27 +39,12 @@ export async function subscribePush(sub: {
 }
 
 export async function unsubscribePush(endpoint: string): Promise<{ ok: boolean }> {
+  if (!(await hasAccount())) return { ok: false }
   const [token, admin] = await Promise.all([getCustomerToken(), isAdmin()])
   if (!token && !admin) return { ok: false }
-  await sql`delete from push_subscriptions where endpoint = ${endpoint}`
+  if (admin) await sql`delete from push_subscriptions where endpoint = ${endpoint}`
+  else await sql`delete from push_subscriptions where endpoint = ${endpoint} and user_token = ${token}`
   return { ok: true }
-}
-
-export async function sendPushToUser(
-  userToken: string,
-  title: string,
-  body: string,
-  url = "/compte",
-): Promise<number> {
-  const rows = (await sql`select endpoint, p256dh, auth from push_subscriptions where user_token = ${userToken}`) as unknown as PushRow[]
-  if (!rows.length) return 0
-  const payload = JSON.stringify({ title, body, icon: '/icon-192.png', badge: '/icon-192.png', url })
-  const results = await Promise.allSettled(
-    rows.map((r) =>
-      webpush.sendNotification({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload)
-    )
-  )
-  return results.filter((r) => r.status === "fulfilled").length
 }
 
 export async function customerHasPush(): Promise<boolean> {
@@ -81,21 +68,3 @@ export async function broadcastPush(title: string, body: string): Promise<{ ok: 
   return { ok: true, sent }
 }
 
-/**
- * Envoie une notification push uniquement aux abonnés admin (role = 'admin').
- * Appelé depuis les server actions sans vérification isAdmin() car c'est une action système.
- */
-export async function sendAdminPush(title: string, body: string): Promise<void> {
-  try {
-    const rows = (await sql`
-      select endpoint, p256dh, auth from push_subscriptions where role = 'admin'
-    `) as unknown as PushRow[]
-    if (!rows.length) return
-    const payload = JSON.stringify({ title, body, icon: '/icon-192.png', badge: '/icon-192.png' })
-    await Promise.allSettled(
-      rows.map((r) =>
-        webpush.sendNotification({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload)
-      )
-    )
-  } catch { /* push optionnel — ne bloque jamais l'action principale */ }
-}

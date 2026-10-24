@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { isAdmin, getCustomerToken } from "@/lib/auth"
+import { hasAccount } from "@/lib/shop-access"
 import { revalidatePath } from "next/cache"
 import { nanoid } from "nanoid"
 
@@ -16,6 +17,7 @@ export type LoyaltyTier = {
 // ── Lecture publique ──────────────────────────────────────────────────────
 
 export async function getLoyaltyTiers(): Promise<LoyaltyTier[]> {
+  if (!(await hasAccount())) return []
   const rows = await sql`SELECT * FROM loyalty_tiers ORDER BY sort_order ASC`
   return rows.map((r: any) => ({
     id:             r.id,
@@ -132,6 +134,8 @@ export async function claimLoyaltyReward(
 // ── Marquer un code récompense comme consommé lors du passage de commande ──
 
 export async function consumeLoyaltyCode(code: string, byToken: string): Promise<void> {
+  const token = await getCustomerToken()
+  if (!token || token !== byToken) return
   await sql`
     UPDATE promo_codes
     SET active = false, used_by_token = ${byToken}

@@ -1,17 +1,18 @@
 import { put } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { getCustomerToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
+    const token = (await getCustomerToken())?.trim() ?? ""
     const formData = await request.formData()
     const file = formData.get("file") as File | null
-    const token = String(formData.get("token") ?? "").trim()
     const kind = String(formData.get("kind") ?? "").trim() // 'photo' | 'video'
 
     if (!file) return NextResponse.json({ error: "Fichier manquant." }, { status: 400 })
     if (!token || (kind !== "photo" && kind !== "video")) {
-      return NextResponse.json({ error: "Requête invalide." }, { status: 400 })
+      return NextResponse.json({ error: "Connecte-toi pour envoyer la vérification." }, { status: 401 })
     }
 
     // Vérifie que le token correspond à un compte réel
