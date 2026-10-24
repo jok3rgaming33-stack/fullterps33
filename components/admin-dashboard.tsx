@@ -109,7 +109,7 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
               <Zap className="h-5 w-5 text-violet-electric animate-flicker" />
             </div>
             <div>
-              <p className="font-display text-base tracking-widest">BRUMÉCO</p>
+              <p className="font-display text-base tracking-widest">fullterps33</p>
               <p className="font-mono text-[9px] uppercase tracking-widest text-ivory/40">
                 Administration
               </p>

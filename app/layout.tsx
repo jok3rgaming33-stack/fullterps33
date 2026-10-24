@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
   let name = BRAND_NAME
   try { name = publicText(await getSetting("site_name"), BRAND_NAME) } catch {}
   return {
-    title: `${name} — E-liquides éco-durables`,
+    title: `${name} — N°1 du 33`,
     description:
       "E-boutique d'e-liquides pour cigarette électronique. Flacons rechargeables, formules suivies. Réservé aux 18 ans et plus.",
   }
