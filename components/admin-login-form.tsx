@@ -4,9 +4,13 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Zap, Lock } from "lucide-react"
 import { loginAdmin } from "@/app/actions/admin"
+import { loginStaff } from "@/app/actions/staff"
 
 export function AdminLoginForm() {
+  const [mode, setMode] = useState<"token" | "compte">("token")
   const [token, setToken] = useState("")
+  const [pseudo, setPseudo] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -15,6 +19,16 @@ export function AdminLoginForm() {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
+      if (mode === "compte") {
+        const result = await loginStaff(pseudo, password)
+        if (result.ok) {
+          router.push(result.role === "livreur" ? "/livreur" : "/admin")
+          router.refresh()
+        } else {
+          setError(result.error)
+        }
+        return
+      }
       const result = await loginAdmin(token)
       if (result.ok) {
         router.refresh()
@@ -72,20 +86,61 @@ export function AdminLoginForm() {
             </span>
           </div>
 
-          <label className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-ivory/50">
-              Token admin
-            </span>
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              className="border border-white/15 bg-void px-4 py-3 text-sm text-ivory placeholder-ivory/20 outline-none transition-colors focus:border-violet-electric"
-              placeholder="••••••••••••••••"
-              autoFocus
-              autoComplete="current-password"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("token")}
+              className={`border px-2 py-2 font-mono text-[10px] uppercase tracking-widest ${mode === "token" ? "border-violet-electric text-violet-electric" : "border-white/15 text-ivory/40"}`}
+            >
+              Token
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("compte")}
+              className={`border px-2 py-2 font-mono text-[10px] uppercase tracking-widest ${mode === "compte" ? "border-violet-electric text-violet-electric" : "border-white/15 text-ivory/40"}`}
+            >
+              Compte staff
+            </button>
+          </div>
+
+          {mode === "token" ? (
+            <label className="flex flex-col gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-ivory/50">
+                Token admin
+              </span>
+              <input
+                type="password"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                className="border border-white/15 bg-void px-4 py-3 text-sm text-ivory placeholder-ivory/20 outline-none transition-colors focus:border-violet-electric"
+                placeholder="••••••••••••••••"
+                autoFocus
+                autoComplete="current-password"
+              />
+            </label>
+          ) : (
+            <>
+              <label className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-ivory/50">Pseudo</span>
+                <input
+                  value={pseudo}
+                  onChange={(e) => setPseudo(e.target.value)}
+                  className="border border-white/15 bg-void px-4 py-3 text-sm text-ivory outline-none focus:border-violet-electric"
+                  autoComplete="username"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-ivory/50">Mot de passe</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="border border-white/15 bg-void px-4 py-3 text-sm text-ivory outline-none focus:border-violet-electric"
+                  autoComplete="current-password"
+                />
+              </label>
+            </>
+          )}
 
           {error && (
             <div className="border border-signal/30 bg-signal/5 px-3 py-2">
@@ -95,7 +150,7 @@ export function AdminLoginForm() {
 
           <button
             type="submit"
-            disabled={pending || !token}
+            disabled={pending || (mode === "token" ? !token : !pseudo.trim() || !password)}
             className="clip-tag bg-violet-electric py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? "Vérification…" : "Entrer"}
@@ -103,7 +158,7 @@ export function AdminLoginForm() {
         </form>
 
         <p className="mt-6 text-center font-mono text-[10px] text-ivory/20">
-          Accès réservé aux administrateurs autorisés
+          Accès réservé à l&apos;admin et au staff
         </p>
       </div>
     </div>

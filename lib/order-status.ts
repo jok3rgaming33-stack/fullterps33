@@ -128,7 +128,7 @@ export const STATUS_META: Record<OrderStatusKey, StatusMeta> = {
     next: "livraison",
   },
   livraison: {
-    label: "En livraison",
+    label: "Livraison en cours",
     badge: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30",
     accent: "text-indigo-300",
     color: "text-indigo-300",

@@ -1,4 +1,5 @@
-import { isAdmin } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import { getActor } from "@/app/actions/staff"
 import { AdminLoginForm } from "@/components/admin-login-form"
 import { AdminDashboard } from "@/components/admin-dashboard"
 import { listProducts } from "@/app/actions/products"
@@ -14,8 +15,9 @@ import { sql } from "@/lib/db"
 export const dynamic = "force-dynamic"
 
 export default async function AdminPage() {
-  const admin = await isAdmin()
-  if (!admin) return <AdminLoginForm />
+  const actor = await getActor()
+  if (!actor) return <AdminLoginForm />
+  if (actor.role === "livreur") redirect("/livreur")
 
   const [products, promos, orders, users, threads, appSettings, news, cartConfig, verifications, sections, loyaltyTiers, rules, rewardCodeRows] = await Promise.all([
     listProducts(),

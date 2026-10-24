@@ -458,8 +458,22 @@ function allowedStatus(current: string, next: string): OrderStatusKey | null {
   return key
 }
 
-export async function updateThreadStatus(id: number, status: string) {
-  if (!(await isAdmin())) return { ok: false as const, error: "Non autorisé" }
+const LIVREUR_STATUS = new Set<OrderStatusKey>([
+  "bientot_livraison",
+  "livraison",
+  "arrivee",
+  "livree",
+  "annulee",
+])
+
+export async function updateThreadStatus(id: number, status: string, extra?: { comment?: string }) {
+  const admin = await isAdmin()
+  let livreur = false
+  if (!admin) {
+    const { getActor } = await import("@/app/actions/staff")
+    livreur = (await getActor())?.role === "livreur"
+  }
+  if (!admin && !livreur) return { ok: false as const, error: "Non autorisé" }
   await ensureMessagingSchema()
 
   const rows = await sql`select * from order_threads where id = ${id} limit 1`
@@ -468,6 +482,18 @@ export async function updateThreadStatus(id: number, status: string) {
 
   const nextKey = allowedStatus(String(current.status ?? ""), status)
   if (!nextKey) return { ok: false as const, error: "Statut invalide" }
+
+  if (livreur) {
+    if (!LIVREUR_STATUS.has(nextKey)) {
+      return { ok: false as const, error: "Tu ne peux pas poser ce statut." }
+    }
+    if (String(current.fulfillment ?? "") === "meetup" && nextKey !== "annulee") {
+      return { ok: false as const, error: "Le retrait se gère depuis l'admin." }
+    }
+    if (nextKey === "annulee" && !extra?.comment?.trim()) {
+      return { ok: false as const, error: "Un commentaire est obligatoire pour annuler." }
+    }
+  }
 
   const prevKey = normalizeStatus(String(current.status ?? ""))
   const tracking = readTracking(current.tracking)
@@ -479,7 +505,8 @@ export async function updateThreadStatus(id: number, status: string) {
     history.en_attente = new Date(current.created_at).toISOString()
   }
   if (nextKey !== prevKey) history[nextKey] = new Date().toISOString()
-  const nextTracking: OrderTrackingState = { ...tracking, history }
+  const cancelReason = nextKey === "annulee" ? extra?.comment?.trim().slice(0, 500) || tracking.cancelReason || null : tracking.cancelReason
+  const nextTracking: OrderTrackingState = { ...tracking, history, cancelReason }
 
   await sql`
     update order_threads
@@ -517,7 +544,8 @@ export async function updateThreadStatus(id: number, status: string) {
         )
       } catch { /* push optionnel */ }
     }
-    const notice = statusNotice(nextKey, pushSent, slot, points)
+    let notice = statusNotice(nextKey, pushSent, slot, points)
+    if (nextKey === "annulee" && cancelReason) notice += `\nCommentaire : ${cancelReason}`
     await sql`
       insert into order_thread_messages (thread_id, author, content, type)
       values (${id}, 'vendeur', ${notice}, 'status')
@@ -526,6 +554,64 @@ export async function updateThreadStatus(id: number, status: string) {
   }
 
   revalidatePath("/admin")
+  revalidatePath("/livreur")
+  revalidatePath("/livreur/tournee/[id]", "page")
+  revalidatePath("/messagerie")
+  revalidatePath("/compte")
+  return { ok: true as const }
+}
+
+/** Livreur ou admin : prévient le client dans le fil, sans changer le statut. */
+export async function notifyArrivingInMinutes(threadId: number, minutes = 5) {
+  const admin = await isAdmin()
+  let livreur = false
+  if (!admin) {
+    const { getActor } = await import("@/app/actions/staff")
+    livreur = (await getActor())?.role === "livreur"
+  }
+  if (!admin && !livreur) return { ok: false as const, error: "Non autorisé" }
+  if (!threadId || minutes < 1 || minutes > 30) return { ok: false as const, error: "Paramètres invalides." }
+
+  await ensureMessagingSchema()
+  const rows = await sql`select * from order_threads where id = ${threadId} limit 1`
+  const current = rows[0]
+  if (!current) return { ok: false as const, error: "Commande introuvable." }
+  if (String(current.fulfillment ?? "") === "meetup") {
+    return { ok: false as const, error: "Le retrait se gère depuis l'admin." }
+  }
+  const key = normalizeStatus(String(current.status ?? ""))
+  if (key !== "livraison" && key !== "arrivee") {
+    return { ok: false as const, error: "La commande n'est pas en livraison." }
+  }
+
+  const body = `Je suis à ${minutes} minute${minutes > 1 ? "s" : ""}. Reste joignable.`
+  const tracking = readTracking(current.tracking)
+  const arriveBy = new Date(Date.now() + minutes * 60 * 1000).toISOString()
+  const nextTracking: OrderTrackingState = {
+    ...tracking,
+    etaMin: minutes,
+    etaAt: new Date().toISOString(),
+    etaArriveBy: arriveBy,
+  }
+  await sql`
+    update order_threads
+    set tracking = ${JSON.stringify(nextTracking)}::text::jsonb,
+        unread_client = unread_client + 1,
+        updated_at = now()
+    where id = ${threadId}
+  `
+  await sql`
+    insert into order_thread_messages (thread_id, author, content, type)
+    values (${threadId}, 'vendeur', ${body}, 'text')
+  `
+  if (current.user_token) {
+    try {
+      const { sendPushToUser } = await import("@/app/actions/push")
+      await sendPushToUser(current.user_token, `Commande #${threadId}`, body, "/compte")
+    } catch { /* push optionnel */ }
+  }
+  revalidatePath("/livreur")
+  revalidatePath("/livreur/tournee/[id]", "page")
   revalidatePath("/messagerie")
   revalidatePath("/compte")
   return { ok: true as const }

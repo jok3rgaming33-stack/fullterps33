@@ -6,7 +6,7 @@ import { createHash } from 'crypto'
 
 // Connexion admin par ADMIN_TOKEN (env var) — identique au modèle BB33.
 // Tu positionnes simplement ADMIN_TOKEN=une-chaine-secrete dans Vercel env vars.
-export async function loginAdmin(input: string): Promise<{ ok: boolean; error?: string }> {
+export async function loginAdmin(input: string): Promise<{ ok: true; role: "admin" } | { ok: false; error: string }> {
   // Nettoie les espaces et retours à la ligne des deux côtés
   const val = (input ?? '').trim().replace(/\s+/g, '')
   if (!val) return { ok: false, error: 'Identifiant requis.' }
@@ -17,14 +17,14 @@ export async function loginAdmin(input: string): Promise<{ ok: boolean; error?: 
   // Vérifie contre ADMIN_TOKEN
   if (envToken && val === envToken) {
     await setAdminSession(envToken)
-    return { ok: true }
+    return { ok: true, role: 'admin' as const }
   }
 
   // Fallback : ADMIN_PASSWORD
   if (envPassword && val === envPassword) {
     const sessionToken = createHash('sha256').update(envPassword).digest('hex')
     await setAdminSession(sessionToken)
-    return { ok: true }
+    return { ok: true, role: 'admin' as const }
   }
 
   return { ok: false, error: 'Token invalide.' }
@@ -33,6 +33,11 @@ export async function loginAdmin(input: string): Promise<{ ok: boolean; error?: 
 export async function logoutAdmin() {
   await clearAdminSession()
   redirect('/')
+}
+
+export async function logoutToLogin() {
+  await clearAdminSession()
+  redirect('/admin')
 }
 
 // Alias pour compatibilité avec les composants existants

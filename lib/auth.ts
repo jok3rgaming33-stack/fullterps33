@@ -49,9 +49,14 @@ export async function setAdminSession(token: string) {
   })
 }
 
-export async function isAdmin(): Promise<boolean> {
+export async function getAdminCookie(): Promise<string | null> {
   const store = await cookies()
-  const session = store.get(ADMIN_COOKIE)?.value
+  return store.get(ADMIN_COOKIE)?.value ?? null
+}
+
+/** Admin historique : ADMIN_TOKEN ou ADMIN_PASSWORD. Ne consulte pas les comptes Staff. */
+export async function isEnvAdmin(): Promise<boolean> {
+  const session = await getAdminCookie()
   if (!session) return false
   const envToken = (process.env.ADMIN_TOKEN ?? '').trim().replace(/\s+/g, '')
   if (envToken && session === envToken) return true
@@ -61,6 +66,15 @@ export async function isAdmin(): Promise<boolean> {
     if (session === derived) return true
   }
   return false
+}
+
+export async function isAdmin(): Promise<boolean> {
+  if (await isEnvAdmin()) return true
+  const session = await getAdminCookie()
+  if (!session) return false
+  const { getActor } = await import('@/app/actions/staff')
+  const actor = await getActor()
+  return actor?.role === 'admin'
 }
 
 export async function clearAdminSession() {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import type { OrderThread } from "@/app/actions/messaging"
 import { pointsForAmount } from "@/lib/loyalty"
 import { isClosedStatus } from "@/lib/order-status"
+import { formatPrice } from "@/lib/utils"
 import { getMapOrigin, setMapOrigin } from "@/app/actions/settings"
 import {
   Map as MapIcon, MapPinOff, Route, RotateCcw,
@@ -111,7 +112,7 @@ async function fetchOptimizedTrip(start: LatLng, points: Located[], signal: Abor
   }
 }
 
-export function AdminMap({ threads }: { threads: OrderThread[] }) {
+export function AdminMap({ threads, lockOrigin = false }: { threads: OrderThread[]; lockOrigin?: boolean }) {
   const containerRef  = useRef<HTMLDivElement>(null)
   const mapRef        = useRef<import("leaflet").Map | null>(null)
   const LRef          = useRef<typeof import("leaflet") | null>(null)
@@ -216,14 +217,16 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
       mapRef.current = map
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map)
       overlayRef.current = L.layerGroup().addTo(map)
-      map.on("click", (e: import("leaflet").LeafletMouseEvent) => setDeparture({ lat: e.latlng.lat, lng: e.latlng.lng }))
+      if (!lockOrigin) {
+        map.on("click", (e: import("leaflet").LeafletMouseEvent) => setDeparture({ lat: e.latlng.lat, lng: e.latlng.lng }))
+      }
       setReady(true); setTimeout(() => map.invalidateSize(), 100)
     })()
     return () => {
       cancelled = true
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; overlayRef.current = null; LRef.current = null; setReady(false) }
     }
-  }, [])
+  }, [lockOrigin])
 
   // Dessin marqueurs + itinéraire
   useEffect(() => {
@@ -233,9 +236,9 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
 
     // Point de départ
     const departureMarker = L.marker([departure.lat, departure.lng], {
-      draggable: true,
+      draggable: !lockOrigin,
       icon: L.divIcon({ className: "", html: '<div style="background:#e11d48;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #e11d48"></div>', iconSize: [18,18], iconAnchor: [9,9] }),
-    }).addTo(overlay).bindPopup("<strong>Point de départ</strong><br>Glisse-moi ou clique sur la carte")
+    }).addTo(overlay).bindPopup(lockOrigin ? "<strong>Point de départ</strong>" : "<strong>Point de départ</strong><br>Glisse-moi ou clique sur la carte")
     departureMarker.on("dragend", () => { const p = departureMarker.getLatLng(); setDeparture({ lat: p.lat, lng: p.lng }) })
 
     // Tracé
@@ -256,7 +259,7 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
         <div style="font-weight:700;font-size:13px;margin-bottom:4px">${escapeHtml(t.customerName ?? "—")}</div>
         <div style="display:inline-block;background:${u.color};color:#fff;font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;margin-bottom:6px">${escapeHtml(u.label)}</div>
         <div><b>Produits :</b> ${escapeHtml(t.products ?? "—")}</div>
-        <div><b>Montant :</b> ${t.total ?? 0}€</div>
+        <div><b>Montant :</b> ${escapeHtml(formatPrice(t.total ?? 0))}</div>
         <div><b>Mode :</b> ${t.fulfillment === "meetup" ? "Retrait" : "Livraison"}</div>
         <div><b>Points :</b> +${pts}</div>
         <div><b>Commandes client :</b> ${count}</div>
@@ -269,7 +272,7 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
     const pts: [number, number][] = [[departure.lat, departure.lng], ...located.map((t) => [t.lat, t.lng] as [number, number])]
     if (pts.length > 1) map.fitBounds(pts, { padding: [40,40], maxZoom: 14 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, located, selectedIds, departure, routing, orderIndex, orderCountByClient])
+  }, [ready, located, selectedIds, departure, routing, orderIndex, orderCountByClient, lockOrigin])
 
   const unlocatedCount = threads.filter((t) => !isClosedStatus(t.status)).length - located.length
   const deliveredCount  = threads.filter((t) =>  isClosedStatus(t.status)).length
@@ -299,7 +302,9 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
         <div>
           <p className="font-display text-sm tracking-widest text-ivory">Tournée de livraison</p>
           <p className="font-mono text-[10px] text-ivory/40">
-            Clique sur la carte ou glisse le point rouge pour définir le départ. L&apos;itinéraire suit les routes.
+            {lockOrigin
+              ? "Itinéraire des commandes à livrer. Le départ est celui du magasin."
+              : "Clique sur la carte ou glisse le point rouge pour définir le départ. L'itinéraire suit les routes."}
           </p>
         </div>
       </div>
@@ -354,11 +359,13 @@ export function AdminMap({ threads }: { threads: OrderThread[] }) {
                 className="border border-white/10 px-2 py-1 font-mono text-[10px] text-ivory/60 transition hover:border-violet-electric/40 hover:text-ivory">
                 Tout retirer
               </button>
-              <button onClick={saveOrigin} disabled={savingOrigin}
-                className="ml-auto flex items-center gap-1 border border-violet-electric/30 bg-violet-electric/10 px-2 py-1 font-mono text-[10px] text-violet-electric transition hover:bg-violet-electric/20 disabled:opacity-40">
-                {savingOrigin ? <Loader2 className="h-3 w-3 animate-spin" /> : savedOrigin ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
-                {savedOrigin ? "Enregistré" : "Mémoriser"}
-              </button>
+              {!lockOrigin && (
+                <button onClick={saveOrigin} disabled={savingOrigin}
+                  className="ml-auto flex items-center gap-1 border border-violet-electric/30 bg-violet-electric/10 px-2 py-1 font-mono text-[10px] text-violet-electric transition hover:bg-violet-electric/20 disabled:opacity-40">
+                  {savingOrigin ? <Loader2 className="h-3 w-3 animate-spin" /> : savedOrigin ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
+                  {savedOrigin ? "Enregistré" : "Mémoriser"}
+                </button>
+              )}
               <button onClick={() => setDeparture(DEFAULT_ORIGIN)}
                 className="flex items-center gap-1 border border-white/10 px-2 py-1 font-mono text-[10px] text-ivory/60 transition hover:text-ivory">
                 <RotateCcw className="h-3 w-3" /> Départ
