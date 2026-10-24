@@ -9,6 +9,7 @@ import { getShopSections } from "@/app/actions/settings"
 import { getCurrentCustomer } from "@/app/actions/account"
 import { CheckoutCart } from "@/components/checkout-cart"
 import { ShopStatusBanner } from "@/components/shop-status-banner"
+import { ProductIndex } from "@/components/product-index"
 
 export const dynamic = "force-dynamic"
 
@@ -38,12 +39,17 @@ export default async function HomePage({
       <ShopStatusBanner />
       <main>
         <Hero />
-        {sections.map((sec, i) => (
-          <div key={sec.slug}>
-            <ProductSection config={sec} />
-            {i < sections.length - 1 && <LightningDivider label="orage urbain" />}
+        <div className="xl:mx-auto xl:flex xl:max-w-[1480px] xl:items-start">
+          <div className="min-w-0 flex-1">
+            {sections.map((sec, i) => (
+              <div key={sec.slug}>
+                <ProductSection config={sec} />
+                {i < sections.length - 1 && <LightningDivider label="orage urbain" />}
+              </div>
+            ))}
           </div>
-        ))}
+          <ProductIndex />
+        </div>
       </main>
       <Footer />
       <CheckoutCart userData={userData} />

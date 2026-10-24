@@ -265,7 +265,7 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
         lng:  isMeetup ? undefined : (hit?.lng ?? coords?.lng),
         scheduledDate: date,
         scheduledSlot: isMeetup ? meetupHour : slot,
-        items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
+        items: lines.map((l) => ({ productId: l.product.id, name: l.product.name, quantity: l.quantity })),
       })
 
       if (result.ok) {

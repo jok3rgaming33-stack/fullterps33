@@ -30,6 +30,13 @@ export type AdminUser = {
 /* ─────────────────── Customer ─────────────────── */
 
 export async function logout() {
+  const token = await getCustomerToken()
+  if (token) {
+    try {
+      const { recordLogout } = await import("@/app/actions/login-logs")
+      await recordLogout(token)
+    } catch { /* journal optionnel */ }
+  }
   await clearCustomerSession()
 }
 
@@ -65,7 +72,9 @@ export async function listAdminUsers(): Promise<AdminUser[]> {
       count(o.id)::int                   as order_count,
       coalesce(sum(o.total), 0)::int     as total_spent
     from users u
-    left join orders o on o.user_token = u.token
+    left join order_threads o
+      on o.user_token = u.token
+     and o.status not in ('discussion', 'pris_en_charge', 'ouvert', 'ferme')
     group by u.id
     order by u.created_at desc
   `

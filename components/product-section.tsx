@@ -1,5 +1,6 @@
 import { ProductOrbitCarousel } from "@/components/product-orbit-carousel"
 import { listProducts } from "@/app/actions/products"
+import { getProductRatingSummaries } from "@/app/actions/ratings"
 import type { ShopSection } from "@/app/actions/settings"
 import { isAdmin } from "@/lib/auth"
 import { isForbiddenCopy, visibleShopText } from "@/lib/brand"
@@ -9,11 +10,12 @@ export async function ProductSection({ config }: { config: ShopSection }) {
   const items = (await listProducts(config.slug)).filter(
     (p) => admin || !isForbiddenCopy(`${p.name} ${p.description ?? ""} ${p.category}`),
   )
+  const ratings = await getProductRatingSummaries(items.map((p) => p.id))
   const eyebrow = visibleShopText(config.eyebrow, "En vedette", admin)
   const title   = visibleShopText(config.title, "Les classiques", admin)
 
   return (
-    <section id={config.slug} className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 sm:py-16">
+    <section id={config.slug} className="mx-auto max-w-[1200px] scroll-mt-20 px-4 py-12 sm:px-6 sm:py-16">
       <div className="mb-8 flex items-end justify-between border-b border-white/10 pb-4">
         <div>
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-violet-electric">
@@ -33,7 +35,7 @@ export async function ProductSection({ config }: { config: ShopSection }) {
           Aucun produit pour l'instant. Ajoutez-en depuis le panel admin.
         </p>
       ) : (
-        <ProductOrbitCarousel products={items} />
+        <ProductOrbitCarousel products={items} ratings={ratings} />
       )}
     </section>
   )

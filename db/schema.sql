@@ -62,3 +62,36 @@ create table if not exists orders (
   status text not null default 'En préparation',
   created_at timestamptz not null default now()
 );
+
+-- Avis laissés après une commande livrée. Une note par produit et par commande.
+create table if not exists product_ratings (
+  id serial primary key,
+  product_id text not null,
+  user_token text not null,
+  thread_id integer not null,
+  taste integer not null,
+  bottle integer not null,
+  packaging integer not null,
+  delivery integer not null,
+  comment text,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists product_ratings_once
+  on product_ratings (product_id, user_token, thread_id);
+
+-- Connexions client (token, biométrie, création de compte).
+create table if not exists login_logs (
+  id serial primary key,
+  user_token text not null,
+  pseudo text not null,
+  ip text,
+  city text,
+  country text,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  logged_out_at timestamptz
+);
+
+create index if not exists login_logs_created_idx on login_logs (created_at desc);
+create index if not exists login_logs_token_idx on login_logs (user_token);

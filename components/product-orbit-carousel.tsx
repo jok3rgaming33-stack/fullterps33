@@ -12,6 +12,8 @@ import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react"
 import { BlobMedia } from "@/components/blob-media"
 import { ProductBadges } from "@/components/product-badges"
 import { ProductModal } from "@/components/product-modal"
+import { RatingBadge } from "@/components/product-rating-badge"
+import type { ProductRatingSummary } from "@/lib/ratings"
 import type { Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 
@@ -31,7 +33,7 @@ function coverOf(product: Product) {
 function computeLayout(width: number) {
   const cardW = Math.round(Math.min(220, Math.max(136, width * 0.46)))
   const spread = Math.min(cardW * 0.78, Math.max(72, (width - cardW) / 2 - 12))
-  const stageH = cardW + 132
+  const stageH = cardW + 156
   return { cardW, spread, stageH }
 }
 
@@ -54,7 +56,13 @@ function place(index: number, rotation: number, n: number, spread: number) {
   }
 }
 
-export function ProductOrbitCarousel({ products }: { products: Product[] }) {
+export function ProductOrbitCarousel({
+  products,
+  ratings = {},
+}: {
+  products: Product[]
+  ratings?: Record<string, ProductRatingSummary>
+}) {
   const n = products.length
   const rootRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -132,6 +140,30 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
     setRotation(next)
     setActive(i)
   }, [n, step])
+
+  useEffect(() => {
+    const onFocus = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: string }>).detail?.id
+      const index = products.findIndex((product) => product.id === id)
+      if (index < 0) return
+      setPlaying(false)
+      snapTo(index)
+      rootRef.current?.closest("section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+    window.addEventListener("ft33:focus-product", onFocus)
+    return () => window.removeEventListener("ft33:focus-product", onFocus)
+  }, [products, snapTo])
+
+  useEffect(() => {
+    if (!inView) return
+    const id = products[active]?.id
+    const el = rootRef.current
+    if (!id || !el) return
+    const rect = el.getBoundingClientRect()
+    const distance = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2)
+    if (distance > window.innerHeight * 0.55) return
+    window.dispatchEvent(new CustomEvent("ft33:active-product", { detail: { id } }))
+  }, [active, inView, products])
 
   useEffect(() => {
     if (reducedMotion || n < 2 || !playing || !inView || opened) return
@@ -224,8 +256,8 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
   return (
     <div ref={rootRef} className="relative w-full select-none">
       {n === 1 ? (
-        <div className={opened ? "invisible" : undefined}>
-          <Face product={products[0]} width={Math.min(240, cardW + 24)} front className="mx-auto" onOpen={() => setOpened(products[0])} />
+        <div id={`product-${products[0].id}`} className={opened ? "invisible" : undefined}>
+          <Face product={products[0]} summary={ratings[products[0].id]} width={Math.min(240, cardW + 24)} front className="mx-auto" onOpen={() => setOpened(products[0])} />
         </div>
       ) : (
         <div
@@ -255,6 +287,7 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
                   if (spot.front) setOpened(product)
                   else { setPlaying(false); snapTo(i) }
                 }}
+                id={`product-${product.id}`}
                 className="absolute left-1/2 top-1/2 text-left"
                 style={{
                   width: cardW,
@@ -265,7 +298,7 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
                   transition: ease,
                 }}
               >
-                <Face product={product} width={cardW} front={spot.front} />
+                <Face product={product} summary={ratings[product.id]} width={cardW} front={spot.front} />
               </button>
             )
           })}
@@ -315,19 +348,28 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
         </div>
       )}
 
-      {opened && <ProductModal product={opened} isOpen onClose={() => setOpened(null)} />}
+      {opened && (
+        <ProductModal
+          product={opened}
+          rating={ratings[opened.id]}
+          isOpen
+          onClose={() => setOpened(null)}
+        />
+      )}
     </div>
   )
 }
 
 function Face({
   product,
+  summary,
   front,
   width,
   className = "",
   onOpen,
 }: {
   product: Product
+  summary?: ProductRatingSummary
   front: boolean
   width: number
   className?: string
@@ -357,6 +399,11 @@ function Face({
         <h3 className="line-clamp-2 font-display text-sm leading-tight tracking-wide text-ivory sm:text-base">
           {product.name}
         </h3>
+        {summary && (
+          <div className="mt-1">
+            <RatingBadge summary={summary} productTitle={product.name} />
+          </div>
+        )}
       </div>
     </>
   )

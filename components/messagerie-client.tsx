@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, MessageSquare, Send, Loader2, Plus } from "lucide-react"
+import { ArrowLeft, MessageSquare, Send, Loader2, Plus, Star } from "lucide-react"
 import {
   getThreadsForToken,
   getThread,
@@ -10,11 +10,12 @@ import {
   type OrderThread,
   type ThreadMessage,
 } from "@/app/actions/messaging"
-import { isDiscussionStatus, statusMeta } from "@/lib/order-status"
+import { isDiscussionStatus, normalizeStatus, statusMeta } from "@/lib/order-status"
 import { formatScheduledLabel } from "@/lib/order-timeline"
 import { OrderTrackingCard } from "@/components/order-tracking-card"
 import { MessageBody } from "@/components/message-body"
 import { VoiceNoteButton } from "@/components/voice-note-button"
+import { ProductRatingModal } from "@/components/product-rating-modal"
 
 type UserData = { pseudo?: string; token?: string } | null
 
@@ -42,6 +43,7 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
   const [sending, setSending]       = useState(false)
   const [composeText, setCompose]   = useState("")
   const [creating, setCreating]     = useState(false)
+  const [ratingOpen, setRatingOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Poll liste toutes les 8s
@@ -226,7 +228,7 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <button
-        onClick={() => { setView("list"); setSelected(null); setMessages([]) }}
+        onClick={() => { setView("list"); setSelected(null); setMessages([]); setRatingOpen(false) }}
         className="flex items-center gap-2 font-mono text-xs text-ivory/50 transition hover:text-ivory"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Retour
@@ -242,13 +244,25 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
             <p className="font-mono text-[10px] text-ivory/40">{fmtDate(selected.createdAt)}</p>
           )}
         </div>
-        {meta && (
-          <span
-            className={`px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest ${meta.badge}`}
-          >
-            {meta.label}
-          </span>
-        )}
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {meta && (
+            <span
+              className={`px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest ${meta.badge}`}
+            >
+              {meta.label}
+            </span>
+          )}
+          {selected && normalizeStatus(selected.status) === "livree" && (
+            <button
+              type="button"
+              onClick={() => setRatingOpen(true)}
+              className="flex items-center gap-1.5 border border-amber-300/30 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-amber-200 hover:bg-amber-300/10"
+            >
+              <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
+              Noter
+            </button>
+          )}
+        </div>
       </div>
 
       {selected && !isDiscussionStatus(selected.status) && (
@@ -325,6 +339,9 @@ export function MessagerieClient({ userData, initialThreads }: Props) {
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </button>
       </div>
+      {ratingOpen && selected && (
+        <ProductRatingModal threadId={selected.id} onClose={() => setRatingOpen(false)} />
+      )}
     </div>
   )
 }

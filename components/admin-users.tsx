@@ -11,6 +11,7 @@ import {
   setUserFlag, adjustLoyaltyPoints, saveAdminNotes, softDeleteUser, restoreUser,
 } from "@/app/actions/account"
 import { formatPrice } from "@/lib/utils"
+import { AdminUser360 } from "@/components/admin-user-360"
 
 const FLAG_CONFIG = {
   fidele:  { label: "Fidèle",   color: "text-emerald-400  ring-emerald-400/30  bg-emerald-400/10"  },
@@ -35,6 +36,7 @@ export function AdminUsersPanel({ users: initial }: { users: AdminUser[] }) {
   const [notesVal,    setNotesVal]    = useState<Record<number, string>>({})
   const [contactId,   setContactId]   = useState<number | null>(null)
   const [contactMsg,  setContactMsg]  = useState("")
+  const [ficheId,     setFicheId]     = useState<number | null>(null)
 
   /* ── filtrage + tri ── */
   const filtered = useMemo(() => {
@@ -320,6 +322,14 @@ export function AdminUsersPanel({ users: initial }: { users: AdminUser[] }) {
                   </div>
                 </div>
 
+                <button
+                  type="button"
+                  onClick={() => setFicheId(u.id)}
+                  className="border border-violet-electric/40 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-violet-electric hover:bg-violet-electric/10"
+                >
+                  Fiche, commandes et connexions
+                </button>
+
                 {/* notes admin */}
                 <div>
                   <p className="label-admin mb-2 flex items-center gap-1.5">
@@ -436,6 +446,8 @@ export function AdminUsersPanel({ users: initial }: { users: AdminUser[] }) {
         </div>
         ) : null
       })()}
+
+      {ficheId != null && <AdminUser360 userId={ficheId} onClose={() => setFicheId(null)} />}
 
     </div>
   )

@@ -59,7 +59,7 @@ export type NewOrderInput = {
   lng?: number | null
   scheduledDate?: string
   scheduledSlot?: string
-  items?: { productId: string; quantity: number }[]
+  items?: { productId: string; name?: string; quantity: number }[]
 }
 
 let schemaReady = false
@@ -68,6 +68,8 @@ export async function ensureMessagingSchema() {
   if (schemaReady) return
   await sql`alter table order_threads add column if not exists tracking jsonb not null default '{}'::jsonb`
   await sql`alter table order_threads add column if not exists loyalty_credited boolean not null default false`
+  await sql`alter table order_threads add column if not exists items jsonb not null default '[]'::jsonb`
+  await sql`alter table order_threads add column if not exists rating_invited_at timestamptz`
   await sql`alter table order_thread_messages add column if not exists client_read_at timestamptz`
   schemaReady = true
 }
@@ -208,10 +210,19 @@ export async function createOrderThread(
   }
 
   const name = customer.pseudo || input.customerName?.trim() || "Client"
+  const itemsJson = JSON.stringify(
+    (input.items ?? [])
+      .filter((item) => item.productId && Number(item.quantity) > 0)
+      .map((item) => ({
+        productId: String(item.productId),
+        name: (item.name ?? "").trim().slice(0, 120),
+        quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
+      })),
+  )
   type Row = { id: number }
   const rows = (await sql`
     insert into order_threads (
-      user_token, customer_name, summary, products, total,
+      user_token, customer_name, summary, products, items, total,
       fulfillment, address, lat, lng,
       scheduled_date, scheduled_slot, status
     ) values (
@@ -219,6 +230,7 @@ export async function createOrderThread(
       ${name},
       ${input.summary},
       ${input.products?.trim() || null},
+      ${itemsJson}::text::jsonb,
       ${input.total},
       ${input.fulfillment},
       ${input.address?.trim() || null},

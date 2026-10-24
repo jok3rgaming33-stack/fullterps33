@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { ProductBadges } from "@/components/product-badges"
+import { RatingBadge } from "@/components/product-rating-badge"
+import type { ProductRatingSummary } from "@/lib/ratings"
 import { findVariantForSize, type Product } from "@/lib/types"
 import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/components/cart-provider"
@@ -13,9 +15,10 @@ interface ProductModalProps {
   product: Product
   isOpen: boolean
   onClose: () => void
+  rating?: ProductRatingSummary
 }
 
-export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
+export function ProductModal({ product, isOpen, onClose, rating }: ProductModalProps) {
   const [size, setSize] = useState(product.sizes[0])
   const { addToCart } = useCart()
   const disabled = product.status === "rupture" || product.status === "bientot"
@@ -128,6 +131,11 @@ export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
           <div>
             <h2 className="font-display text-2xl leading-tight tracking-wide text-ivory">{product.name}</h2>
             <p className="mt-0.5 font-mono text-[11px] uppercase tracking-widest text-ivory/40">{product.sku}</p>
+            {rating && (
+              <div className="mt-2">
+                <RatingBadge summary={rating} productTitle={product.name} interactive />
+              </div>
+            )}
           </div>
 
           {product.description && (

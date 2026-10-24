@@ -97,6 +97,10 @@ export async function registerUser(acceptedVersion?: string): Promise<AuthResult
 
     // Set session with token
     await setCustomerSession(token)
+    try {
+      const { recordLogin } = await import("@/app/actions/login-logs")
+      await recordLogin(token)
+    } catch { /* journal optionnel */ }
 
     // Notification admin — nouveau client
     try {
@@ -134,6 +138,10 @@ export async function loginWithToken(token: string): Promise<AuthResult> {
 
     const user = rows[0]
     await setCustomerSession(token)
+    try {
+      const { recordLogin } = await import("@/app/actions/login-logs")
+      await recordLogin(String(user.token))
+    } catch { /* journal optionnel */ }
 
     return {
       ok: true,

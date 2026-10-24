@@ -274,7 +274,12 @@ export async function finishCustomerWebAuthnAuthentication(input: {
 
     const account = await sql`select token, pseudo from users where token = ${cred.user_token} limit 1`
     if (!account[0]) return { ok: false, error: "Compte introuvable. Utilise ton token." }
-    await setCustomerSession(String(account[0].token))
+    const sessionToken = String(account[0].token)
+    await setCustomerSession(sessionToken)
+    try {
+      const { recordLogin } = await import("@/app/actions/login-logs")
+      await recordLogin(sessionToken)
+    } catch { /* journal optionnel */ }
     return { ok: true, pseudo: String(account[0].pseudo ?? "") }
   } catch (e) {
     console.error("[webauthn] finishAuthentication", e)

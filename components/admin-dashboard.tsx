@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin, Gift, BookOpen, Shield } from "lucide-react"
+import { LogOut, Package, Tag, Zap, BarChart3, Settings, Users, ShoppingBag, MessageSquare, ShieldCheck, MapPin, Gift, BookOpen, Shield, Star, Activity } from "lucide-react"
 import { adminLogout } from "@/app/actions/admin"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
@@ -20,6 +20,8 @@ import { AdminClientPreview } from "@/components/admin-client-preview"
 import { AdminLoyaltyPanel } from "@/components/admin-loyalty-panel"
 import { AdminRulesPanel } from "@/components/admin-rules-panel"
 import { AdminStaffPanel } from "@/components/admin-staff-panel"
+import { AdminRatingsPanel } from "@/components/admin-ratings-panel"
+import { AdminLoginLogs } from "@/components/admin-login-logs"
 import type { AdminUser } from "@/app/actions/account"
 import type { LoyaltyTier } from "@/app/actions/loyalty"
 import type { OrderThread } from "@/app/actions/messaging"
@@ -73,7 +75,9 @@ const TABS = [
   { id: "kyc",        label: "KYC",       icon: ShieldCheck   },
   { id: "promos",     label: "Codes",     icon: Zap           },
   { id: "loyalty",    label: "Fidélité",  icon: Gift          },
+  { id: "ratings",    label: "Avis",      icon: Star          },
   { id: "users",      label: "Membres",   icon: Users         },
+  { id: "logins",     label: "Connexions", icon: Activity     },
   { id: "staff",      label: "Staff",     icon: Shield        },
   { id: "rules",      label: "Modalités", icon: BookOpen      },
   { id: "settings",   label: "Réglages",  icon: Settings      },
@@ -287,6 +291,16 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
             </div>
           )}
 
+          {active === "ratings" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-2 font-display text-2xl tracking-wide">Avis</h2>
+              <p className="mb-6 max-w-xl font-mono text-xs text-ivory/45">
+                Un membre note un produit seulement après une commande livrée. Quatre notes : goût, flacon, emballage, livraison ou retrait.
+              </p>
+              <AdminRatingsPanel />
+            </div>
+          )}
+
           {active === "users" && (
             <div className="animate-rise-fade">
               <h2 className="mb-6 font-display text-2xl tracking-wide">
@@ -294,6 +308,13 @@ export function AdminDashboard({ products, promos, orders, users = [], threads =
                 <span className="text-violet-electric/70 text-xl">({users.length})</span>
               </h2>
               <AdminUsersPanel users={users} />
+            </div>
+          )}
+
+          {active === "logins" && (
+            <div className="animate-rise-fade">
+              <h2 className="mb-6 font-display text-2xl tracking-wide">Connexions</h2>
+              <AdminLoginLogs />
             </div>
           )}
 
