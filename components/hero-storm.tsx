@@ -48,7 +48,7 @@ function makeBolt(w: number, h: number, now: number): Bolt {
     const q = { x: p.x + Math.cos(dir) * len, y: p.y + Math.abs(Math.sin(dir)) * len }
     paths.push({ pts: makePath(p, q, 3), w: 0.45 })
   }
-  return { paths, born: now, life: rand(380, 620), seed: Math.random() }
+  return { paths, born: now, life: rand(520, 780), seed: Math.random() }
 }
 
 const CHARACTER_POSITION = {
@@ -91,7 +91,7 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
     let bolts: Bolt[] = []
     let flash = 0
     let raf = 0
-    let onScreen = true
+    let onScreen = false
     let timer: ReturnType<typeof setTimeout> | undefined
 
     const applyFlash = (v: number) => {
@@ -112,11 +112,15 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
           ctx.beginPath()
           ctx.moveTo(p.pts[0].x, p.pts[0].y)
           for (let i = 1; i < p.pts.length; i++) ctx.lineTo(p.pts[i].x, p.pts[i].y)
-          ctx.strokeStyle = `rgba(196,150,255,${0.55 * a})`
-          ctx.lineWidth = 7 * p.w
+          // Halo peint en trait large : pas de shadowBlur, qui saturait le mobile.
+          ctx.strokeStyle = `rgba(186,140,255,${0.42 * a})`
+          ctx.lineWidth = 15 * p.w
+          ctx.stroke()
+          ctx.strokeStyle = `rgba(230,210,255,${0.9 * a})`
+          ctx.lineWidth = 6 * p.w
           ctx.stroke()
           ctx.strokeStyle = `rgba(255,255,255,${a})`
-          ctx.lineWidth = Math.max(1.2, 2.2 * p.w)
+          ctx.lineWidth = Math.max(1.5, 2.5 * p.w)
           ctx.stroke()
         }
       }
@@ -131,54 +135,52 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
       if (!raf) raf = requestAnimationFrame(frame)
     }
 
-    const strike = () => {
-      if (!onScreen) {
-        schedule()
-        return
-      }
-      if (W < 2 || H < 2) resize()
-      bolts.push(makeBolt(W, H, performance.now()))
-      flash = Math.min(0.55, flash + rand(0.28, 0.45))
-      kick()
-      schedule()
+    const paintIdle = () => {
+      cancelAnimationFrame(raf)
+      raf = 0
+      bolts = []
+      flash = 0
+      applyFlash(0)
+      ctx.clearRect(0, 0, W, H)
     }
 
-    // Assez rare pour laisser scroller : un éclair toutes les 9 à 16 secondes.
-    const schedule = () => {
+    const setLive = (on: boolean) => {
+      wrap.classList.toggle("storm-live", on)
+    }
+
+    const arm = (ms: number) => {
       clearTimeout(timer)
-      timer = setTimeout(strike, rand(9000, 16000))
+      timer = setTimeout(strike, ms)
+    }
+
+    const strike = () => {
+      if (!onScreen || document.hidden) return
+      if (W < 2 || H < 2) resize()
+      const now = performance.now()
+      bolts.push(makeBolt(W, H, now))
+      if (Math.random() < 0.3) bolts.push(makeBolt(W, H, now))
+      flash = Math.min(0.62, flash + rand(0.34, 0.52))
+      kick()
+      // Visible, mais le canvas se rendort : un passage toutes les 5 à 8 secondes.
+      arm(rand(5000, 8000))
     }
 
     const onVis = () => {
-      if (document.hidden) {
+      if (document.hidden || !onScreen) {
         clearTimeout(timer)
-        cancelAnimationFrame(raf)
-        raf = 0
-        bolts = []
-        flash = 0
-        applyFlash(0)
-        ctx.clearRect(0, 0, W, H)
-      } else {
-        schedule()
+        setLive(false)
+        paintIdle()
+        return
       }
+      setLive(true)
+      arm(rand(400, 1000))
     }
     document.addEventListener("visibilitychange", onVis)
     const io = new IntersectionObserver(([entry]) => {
       onScreen = entry.isIntersecting
-      if (!onScreen) {
-        clearTimeout(timer)
-        cancelAnimationFrame(raf)
-        raf = 0
-        bolts = []
-        flash = 0
-        applyFlash(0)
-        ctx.clearRect(0, 0, W, H)
-      } else if (!document.hidden) {
-        schedule()
-      }
-    })
+      onVis()
+    }, { threshold: 0.2 })
     io.observe(wrap)
-    timer = setTimeout(strike, rand(4000, 7000))
 
     return () => {
       clearTimeout(timer)
@@ -209,7 +211,17 @@ export function HeroStorm({ variant = "hero" }: { variant?: keyof typeof CHARACT
         />
       </div>
 
-      {/* Éclairs procéduraux, rares */}
+      <svg viewBox="0 0 46 64" className="hero-bolt pointer-events-none absolute left-[18%] top-[8%] w-10 sm:w-14" aria-hidden="true">
+        <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#F4F0FF" stroke="#B355FF" strokeWidth="1" />
+      </svg>
+      <svg viewBox="0 0 46 64" className="hero-bolt hero-bolt-b pointer-events-none absolute right-[22%] top-[6%] w-8 sm:w-12" aria-hidden="true">
+        <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#FFFFFF" stroke="#D9AFFF" strokeWidth="1" />
+      </svg>
+      <svg viewBox="0 0 46 64" className="hero-bolt hero-bolt-c pointer-events-none absolute left-[42%] top-[18%] w-7 sm:left-[36%] sm:w-11" aria-hidden="true">
+        <path d="M28 0L4 34H20L14 64L42 26H24L28 0Z" fill="#E7D6FF" stroke="#FFFFFF" strokeWidth="1" />
+      </svg>
+
+      {/* Éclair dessiné : un passage court, pas un rendu continu */}
       <canvas ref={canvasRef} className="absolute inset-0 z-[2] h-full w-full" />
     </div>
   )

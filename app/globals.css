@@ -127,12 +127,26 @@ body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
 }
+/* Éclairs du bandeau : surtout éteints, un flash court. Opacité seule —
+   un drop-shadow animé sur ces SVG figeait le défilement. */
+@keyframes bolt-flash {
+  0%, 86%, 100% { opacity: 0; }
+  88% { opacity: 1; }
+  90% { opacity: 0.12; }
+  91.5% { opacity: 0.95; }
+  94% { opacity: 0; }
+}
+.hero-bolt { opacity: 0; }
+.storm-live .hero-bolt { animation: bolt-flash 8s linear infinite; animation-delay: -6.74s; }
+.storm-live .hero-bolt-b { animation-duration: 9.5s; animation-delay: -5.36s; }
+.storm-live .hero-bolt-c { animation-duration: 11.5s; animation-delay: -4.62s; }
 @keyframes orderTrackPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
   50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
 }
 .order-track-current { animation: orderTrackPulse 2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .storm-clouds, .storm-halo, .storm-character, .order-track-current { animation: none; }
+  .storm-clouds, .storm-halo, .storm-character, .hero-bolt, .order-track-current { animation: none; }
   .storm-character { filter: drop-shadow(0 0 30px rgba(179, 85, 255, 0.6)); }
+  .hero-bolt { opacity: 0.45; }
 }
