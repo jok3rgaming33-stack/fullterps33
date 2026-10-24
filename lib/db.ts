@@ -11,7 +11,12 @@ function getClient(): Sql {
         "DATABASE_URL manquant. Ajoutez-le dans les variables d'environnement Vercel (Settings → Environment Variables) et dans .env.local en local.",
       )
     }
-    client = postgres(process.env.DATABASE_URL, { ssl: "require" })
+    client = postgres(process.env.DATABASE_URL, {
+      ssl: "require",
+      // Les ajouts de colonnes au fil de l'eau invalident les requêtes préparées.
+      // Postgres répond alors « cached plan must not change result type » et la page tombe.
+      prepare: false,
+    })
   }
   return client
 }
