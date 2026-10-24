@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import useSWR from "swr"
 import { X, Trash2, MapPin, Tag, CalendarDays, Clock, Truck, Users, Check, Loader2, Minus, Plus } from "lucide-react"
 import { useCart } from "@/components/cart-provider"
@@ -69,6 +69,7 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
   } = useCart()
 
   const [address, setAddress]       = useState("")
+  const addressRef                  = useRef<HTMLInputElement>(null)
   const [codeInput, setCodeInput]   = useState("")
   const [codeError, setCodeError]   = useState<string | null>(null)
   const [codeChecking, setCChecking] = useState(false)
@@ -78,9 +79,51 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
   const [meetupHour, setMeetupHour] = useState("")
 
   const [geoStatus, setGeoStatus]       = useState<"idle"|"loading"|"done"|"error"|"notfound">("idle")
+  const [geoNote, setGeoNote]           = useState<string | null>(null)
   const [distanceKm, setDistanceKm]     = useState<number | null>(null)
   const [coords, setCoords]             = useState<{lat:number;lng:number}|null>(null)
   const [resolvedLabel, setResLabel]    = useState<string|null>(null)
+
+  type GeoHit = { lat: number; lng: number; label: string; distanceKm: number }
+
+  const applyHit = (hit: GeoHit, fillField: boolean) => {
+    setDistanceKm(hit.distanceKm)
+    setCoords({ lat: hit.lat, lng: hit.lng })
+    setResLabel(hit.label)
+    if (fillField) {
+      setAddress(hit.label)
+      if (addressRef.current) addressRef.current.value = hit.label
+    }
+    setGeoStatus("done")
+    setGeoNote(null)
+  }
+
+  const lookup = async (params: string): Promise<GeoHit | null> => {
+    setGeoStatus("loading")
+    setGeoNote(null)
+    setResLabel(null)
+    try {
+      const res = await fetch(`/api/geocode?${params}`)
+      const data = await res.json()
+      if (res.ok && data.found && typeof data.lat === "number" && typeof data.lng === "number") {
+        return {
+          lat: data.lat,
+          lng: data.lng,
+          label: typeof data.label === "string" ? data.label : "",
+          distanceKm: Number(data.distanceKm),
+        }
+      }
+      setDistanceKm(null)
+      setCoords(null)
+      setGeoStatus(res.ok ? "notfound" : "error")
+      return null
+    } catch {
+      setDistanceKm(null)
+      setCoords(null)
+      setGeoStatus("error")
+      return null
+    }
+  }
   const [placed, setPlaced]             = useState(false)
   const [submitting, setSubmitting]     = useState(false)
   const [submitError, setSubmitError]   = useState<string|null>(null)
@@ -148,34 +191,62 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
     }
   }
 
-  const checkAddress = async () => {
-    if (!address.trim()) return
-    setGeoStatus("loading")
-    setResLabel(null)
-    try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(address)}`)
-      const data = await res.json()
-      if (res.ok && data.found) {
-        setDistanceKm(Number(data.distanceKm))
-        setCoords(typeof data.lat === "number" ? { lat: data.lat, lng: data.lng } : null)
-        setResLabel(data.label ?? null)
-        setGeoStatus("done")
-      } else if (res.ok && data.found === false) {
-        setDistanceKm(null); setCoords(null); setGeoStatus("notfound")
-      } else {
-        setDistanceKm(null); setCoords(null); setGeoStatus("error")
-      }
-    } catch {
-      setDistanceKm(null); setCoords(null); setGeoStatus("error")
+  const typedAddress = () => (addressRef.current?.value ?? address).trim()
+
+  const checkAddress = async (raw?: string): Promise<GeoHit | null> => {
+    const q = (raw ?? typedAddress()).trim()
+    if (!q) return null
+    if (q !== address) setAddress(q)
+    const hit = await lookup(`q=${encodeURIComponent(q)}`)
+    if (hit) applyHit(hit, false)
+    return hit
+  }
+
+  // Champ vide : la position du téléphone remplit l'adresse. Geste utilisateur obligatoire (iOS).
+  const fillFromPosition = () => {
+    if (!navigator.geolocation) {
+      setGeoStatus("error")
+      setGeoNote("La position n'est pas disponible sur cet appareil.")
+      return
     }
+    setGeoStatus("loading")
+    setGeoNote(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        void (async () => {
+          const hit = await lookup(`lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`)
+          if (hit) applyHit(hit, true)
+        })()
+      },
+      (err) => {
+        setGeoStatus("error")
+        setGeoNote(
+          err.code === err.PERMISSION_DENIED
+            ? "Autorise la position du site pour remplir l'adresse."
+            : "Impossible de lire ta position. Saisis l'adresse à la main.",
+        )
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 20000 },
+    )
+  }
+
+  const onAddressPin = () => {
+    if (geoStatus === "loading") return
+    const q = typedAddress()
+    if (q) {
+      if (q !== address) setAddress(q)
+      void checkAddress(q)
+      return
+    }
+    fillFromPosition()
   }
 
   const canValidate =
     lines.length > 0 &&
     !!date &&
-    (isMeetup ? !!meetupHour : !!address.trim() && !!slot)
+    (isMeetup ? !!meetupHour : !!slot)
 
-  const placeOrder = async () => {
+  const placeOrder = async (hit?: GeoHit | null) => {
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -189,9 +260,9 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
         products: summary,
         total,
         fulfillment: isMeetup ? "meetup" : "livraison",
-        address: isMeetup ? undefined : (resolvedLabel ?? address),
-        lat:  isMeetup ? undefined : coords?.lat,
-        lng:  isMeetup ? undefined : coords?.lng,
+        address: isMeetup ? undefined : (hit?.label || resolvedLabel || typedAddress()),
+        lat:  isMeetup ? undefined : (hit?.lat ?? coords?.lat),
+        lng:  isMeetup ? undefined : (hit?.lng ?? coords?.lng),
         scheduledDate: date,
         scheduledSlot: isMeetup ? meetupHour : slot,
         items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
@@ -217,13 +288,17 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
       setSubmitError("Connecte-toi pour passer commande.")
       return
     }
-    // Auto-géocodage si adresse saisie mais pas encore vérifiée
-    if (!isMeetup && distanceKm == null && address.trim()) {
-      await checkAddress()
-      // checkAddress met à jour distanceKm de manière asynchrone via setState
-      // On re-déclenche après le prochain rendu via un flag — on sort ici
-      setSubmitError("Adresse vérifiée — clique à nouveau sur Passer commande.")
-      return
+    let hit: GeoHit | null = null
+    if (!isMeetup) {
+      const q = typedAddress()
+      if (!q) {
+        setSubmitError("Indique une adresse, ou appuie sur le repère pour la remplir.")
+        return
+      }
+      if (geoStatus !== "done" || q !== address) {
+        hit = await checkAddress(q)
+        if (!hit) return
+      }
     }
     const token = userData?.token
     // Vérifie si la vérification KYC est nécessaire
@@ -232,7 +307,7 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
       setShowVerif(true)
       return
     }
-    await placeOrder()
+    await placeOrder(hit)
   }
 
   const handleVerificationComplete = async (photo: File, video: File, _meta: VerificationMetadata) => {
@@ -405,17 +480,22 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
                   <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ivory/40">Adresse de livraison</p>
                   <div className="flex gap-2">
                     <input
+                      ref={addressRef}
+                      name="street-address"
+                      autoComplete="street-address"
                       value={address}
-                      onChange={(e) => { setAddress(e.target.value); setGeoStatus("idle"); setDistanceKm(null); setCoords(null) }}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) checkAddress() }}
+                      onChange={(e) => { setAddress(e.target.value); setGeoStatus("idle"); setDistanceKm(null); setCoords(null); setResLabel(null); setGeoNote(null) }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) void checkAddress() }}
                       placeholder="Numéro, rue, ville…"
                       className="min-w-0 flex-1 border border-white/15 bg-void px-3 py-2 font-mono text-xs text-ivory outline-none focus:border-violet-electric"
                     />
                     <button
-                      onClick={checkAddress}
-                      disabled={geoStatus === "loading" || !address.trim()}
+                      type="button"
+                      onClick={onAddressPin}
+                      disabled={geoStatus === "loading"}
                       className="shrink-0 border border-white/20 px-3 py-2 text-ivory/80 hover:border-violet-electric hover:text-violet-electric disabled:opacity-50"
-                      aria-label="Vérifier l'adresse"
+                      aria-label={address.trim() ? "Vérifier l'adresse" : "Remplir avec ma position"}
+                      title={address.trim() ? "Vérifier l'adresse" : "Remplir avec ma position"}
                     >
                       {geoStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
                     </button>
@@ -428,8 +508,11 @@ export function CheckoutCart({ userData, onOrderPlaced }: Props) {
                       )}
                     </p>
                   )}
-                  {geoStatus === "notfound" && <p className="mt-1 font-mono text-[11px] text-signal">Adresse introuvable, réessaie.</p>}
-                  {geoStatus === "error"    && <p className="mt-1 font-mono text-[11px] text-signal">Erreur de géocodage, réessaie.</p>}
+                  {geoStatus === "notfound" && <p className="mt-1 font-mono text-[11px] text-signal">{geoNote ?? "Adresse introuvable, réessaie."}</p>}
+                  {geoStatus === "error"    && <p className="mt-1 font-mono text-[11px] text-signal">{geoNote ?? "Erreur de géocodage, réessaie."}</p>}
+                  {geoStatus === "idle" && !address.trim() && (
+                    <p className="mt-1 font-mono text-[11px] text-ivory/40">Le repère remplit l&apos;adresse avec ta position.</p>
+                  )}
                 </div>
               )}
 
