@@ -22,8 +22,8 @@ export function AdminLoginForm() {
       if (mode === "compte") {
         const result = await loginStaff(pseudo, password)
         if (result.ok) {
-          router.push(result.role === "livreur" ? "/livreur" : "/admin")
-          router.refresh()
+          // Navigation complète : le cookie est bien envoyé, contrairement à un simple refresh.
+          window.location.assign(result.role === "livreur" ? "/livreur" : "/admin")
         } else {
           setError(result.error)
         }
@@ -89,19 +89,24 @@ export function AdminLoginForm() {
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => setMode("token")}
-              className={`border px-2 py-2 font-mono text-[10px] uppercase tracking-widest ${mode === "token" ? "border-violet-electric text-violet-electric" : "border-white/15 text-ivory/40"}`}
+              onClick={() => { setMode("token"); setError(null) }}
+              className={`border px-2 py-2 font-mono text-[10px] uppercase tracking-widest ${mode === "token" ? "border-violet-electric text-violet-electric" : "border-white/30 text-ivory/70"}`}
             >
-              Token
+              Token admin
             </button>
             <button
               type="button"
-              onClick={() => setMode("compte")}
-              className={`border px-2 py-2 font-mono text-[10px] uppercase tracking-widest ${mode === "compte" ? "border-violet-electric text-violet-electric" : "border-white/15 text-ivory/40"}`}
+              onClick={() => { setMode("compte"); setError(null) }}
+              className={`border px-2 py-2 font-mono text-[10px] uppercase tracking-widest ${mode === "compte" ? "border-violet-electric text-violet-electric" : "border-white/30 text-ivory/70"}`}
             >
-              Compte staff
+              Livreur
             </button>
           </div>
+          <p className="font-mono text-[11px] leading-relaxed text-ivory/55">
+            {mode === "token"
+              ? "Réservé au token admin. Un livreur ne l'utilise pas : bouton Livreur, puis le pseudo et le mot de passe créés dans Staff."
+              : "Pseudo et mot de passe du compte créé dans Staff. Ce n'est pas le token admin."}
+          </p>
 
           {mode === "token" ? (
             <label className="flex flex-col gap-2">
