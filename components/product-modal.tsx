@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { ProductBadges } from "@/components/product-badges"
 import { findVariantForSize, type Product } from "@/lib/types"
@@ -50,9 +51,9 @@ export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
 
   if (!isOpen) return null
 
-  return (
+  const dialog = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[240] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label={product.name}
@@ -184,4 +185,7 @@ export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
       </div>
     </div>
   )
+
+  if (typeof document === "undefined") return dialog
+  return createPortal(dialog, document.body)
 }

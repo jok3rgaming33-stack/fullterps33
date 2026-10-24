@@ -44,8 +44,18 @@ export async function Footer() {
           </div>
         </div>
       </div>
-      <div className="border-t border-white/5 px-4 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-ivory/30">
-        {footerCopyright}
+      <div className="border-t border-white/5 px-4 py-4 text-center">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ivory/30">
+          {footerCopyright}
+        </p>
+        <a
+          href="https://heisenweb-portfolio.vercel.app/#travail"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1.5 inline-block font-mono text-[10px] uppercase tracking-[0.22em] text-ivory/30 underline-offset-4 transition hover:text-ivory/70 hover:underline"
+        >
+          Contact
+        </a>
       </div>
     </footer>
   )

@@ -134,7 +134,7 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
   }, [n, step])
 
   useEffect(() => {
-    if (reducedMotion || n < 2 || !playing || !inView) return
+    if (reducedMotion || n < 2 || !playing || !inView || opened) return
     const tick = (ts: number) => {
       if (lastTs.current == null) lastTs.current = ts
       const dt = Math.min(0.05, (ts - lastTs.current) / 1000)
@@ -151,7 +151,7 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
       if (frameRef.current) cancelAnimationFrame(frameRef.current)
       lastTs.current = null
     }
-  }, [n, reducedMotion, playing, inView])
+  }, [n, reducedMotion, playing, inView, opened])
 
   useEffect(() => {
     if (n < 1 || step === 0) return
@@ -224,11 +224,13 @@ export function ProductOrbitCarousel({ products }: { products: Product[] }) {
   return (
     <div ref={rootRef} className="relative w-full select-none">
       {n === 1 ? (
-        <Face product={products[0]} width={Math.min(240, cardW + 24)} front className="mx-auto" onOpen={() => setOpened(products[0])} />
+        <div className={opened ? "invisible" : undefined}>
+          <Face product={products[0]} width={Math.min(240, cardW + 24)} front className="mx-auto" onOpen={() => setOpened(products[0])} />
+        </div>
       ) : (
         <div
           ref={stageRef}
-          className="relative mx-auto w-full touch-pan-y"
+          className={`relative mx-auto w-full touch-pan-y ${opened ? "invisible" : ""}`}
           style={{ height: stageH }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
